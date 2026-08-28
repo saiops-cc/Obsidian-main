@@ -1,3 +1,14 @@
+## 28.08.2026
+
+```diff
+[features]
++ Window Minimize button & smooth height collapse/restore animations (Window:Minimize, Window:Maximize, Window:ToggleMinimize, Window:IsMinimized)
++ Clickable Footer Links with Lucide icons, hover animations, tooltips, and click-to-copy to clipboard (WindowInfo.FooterLinks, Window:AddFooterLink, Window:SetFooterLinks)
++ Sub Tabs nested inside any tab with horizontal navigation bar (Tab:AddSubTab), isolated scrolling columns, and full groupbox/tabbox support
++ Notification History Tab (Window:AddNotificationTab) with live log updates, total count badge, "Clear History", and "Copy All Logs"
++ Library:CopyToClipboard(Text, Title?) cross-executor clipboard helper with automatic toast feedback
+```
+
 ## 25.08.2026
 
 ```diff

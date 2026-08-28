@@ -14,7 +14,7 @@ local TweenService: TweenService = cloneref(game:GetService("TweenService"))
 local getgenv = getgenv or function()
     return shared
 end
-local setclipboard = setclipboard or nil
+local setclipboard = setclipboard or toclipboard or set_clipboard or (syn and syn.write_clipboard) or nil
 local protectgui = protectgui or (syn and syn.protect_gui) or function() end
 local gethui = gethui or function()
     return CoreGui
@@ -197,6 +197,8 @@ local Library = {
 
     --// Notifications \\--
     Notifications = {},
+    NotificationHistory = {},
+    NotificationListeners = {},
     NotifySide = "Right",
     NotifyTweenInfo = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 
@@ -380,7 +382,9 @@ local Templates = {
         AutoShow = true,
         Center = true,
         Resizable = true,
+        Minimizable = true,
         AlwaysOnTop = false,
+        FooterLinks = {},
 
         --// Window Snapping \\--
         Snapping = false,
@@ -1832,6 +1836,31 @@ function Library:SafeCallback(Func: (...any) -> ...any, ...: any)
     end
 
     return table.unpack(Result, 2, Result.n)
+end
+
+function Library:CopyToClipboard(Text: string, Title: string?)
+    if setclipboard then
+        pcall(setclipboard, tostring(Text))
+        if Library.Notify then
+            Library:Notify({
+                Title = Title or "Clipboard",
+                Description = "Copied to clipboard: " .. tostring(Text),
+                Time = 3,
+                Icon = "copy",
+            })
+        end
+        return true
+    else
+        if Library.Notify then
+            Library:Notify({
+                Title = Title or "Clipboard",
+                Description = tostring(Text),
+                Time = 4,
+                Icon = "alert-triangle",
+            })
+        end
+        return false
+    end
 end
 
 function GetOverlappingDraggable(UI: GuiObject, TargetPos: Vector2?)
@@ -9848,6 +9877,25 @@ function Library:Notify(...)
     end
     Data.Destroyed = false
 
+    local HistoryItem = {
+        Title = Data.Title or "Notification",
+        TitleColor = Data.TitleColor,
+        Description = Data.Description or "",
+        DescriptionColor = Data.DescriptionColor,
+        Time = os.time(),
+        FormattedTime = os.date("%X"),
+        Icon = Data.Icon or Data.BigIcon or "bell",
+        IconColor = Data.IconColor,
+        Steps = Data.Steps,
+    }
+    table.insert(Library.NotificationHistory, 1, HistoryItem)
+    if #Library.NotificationHistory > 150 then
+        table.remove(Library.NotificationHistory)
+    end
+    for _, Listener in ipairs(Library.NotificationListeners) do
+        task.spawn(Listener, HistoryItem)
+    end
+
     local DeletedInstance = false
     local DeleteConnection = nil
     if typeof(Data.Time) == "Instance" then
@@ -10393,12 +10441,96 @@ function Library:CreateWindow(WindowInfo)
             Parent = TitleHolder,
         })
 
+        --// Top Right Actions \\--
+        local TopBarActions = New("Frame", {
+            AnchorPoint = Vector2.new(1, 0.5),
+            BackgroundTransparency = 1,
+            Position = UDim2.new(1, -8, 0.5, 0),
+            Size = UDim2.fromScale(0, 1),
+            AutomaticSize = Enum.AutomaticSize.X,
+            Parent = TopBar,
+        })
+        New("UIListLayout", {
+            FillDirection = Enum.FillDirection.Horizontal,
+            HorizontalAlignment = Enum.HorizontalAlignment.Right,
+            VerticalAlignment = Enum.VerticalAlignment.Center,
+            Padding = UDim.new(0, 6),
+            Parent = TopBarActions,
+        })
+
+        local MinimizeButton
+        local MinimizeIconImage
+        if WindowInfo.Minimizable ~= false then
+            MinimizeButton = New("TextButton", {
+                BackgroundColor3 = "MainColor",
+                BackgroundTransparency = 0.5,
+                Size = UDim2.fromOffset(26, 26),
+                Text = "",
+                Parent = TopBarActions,
+            })
+            table.insert(
+                Library.Corners,
+                New("UICorner", {
+                    CornerRadius = UDim.new(0, math.max(2, math.floor(WindowInfo.CornerRadius / 2))),
+                    Parent = MinimizeButton,
+                })
+            )
+            Library:AddOutline(MinimizeButton)
+            Library:AddTooltip("Minimize / Restore Window", "", MinimizeButton)
+
+            local MinIcon = Library:GetCustomIcon("minus") or Library:GetCustomIcon("chevron-up")
+            if MinIcon then
+                MinimizeIconImage = New("ImageLabel", {
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    BackgroundTransparency = 1,
+                    Position = UDim2.fromScale(0.5, 0.5),
+                    ImageColor3 = "FontColor",
+                    ImageTransparency = 0.4,
+                    Size = UDim2.fromOffset(14, 14),
+                    Parent = MinimizeButton,
+                })
+                Library:ApplyLucideIcon(MinimizeIconImage, MinIcon)
+            end
+
+            Library:GiveSignal(MinimizeButton.MouseEnter:Connect(function()
+                TweenService:Create(MinimizeButton, Library.TweenInfo, {
+                    BackgroundTransparency = 0.1,
+                }):Play()
+                if MinimizeIconImage then
+                    TweenService:Create(MinimizeIconImage, Library.TweenInfo, {
+                        ImageTransparency = 0,
+                    }):Play()
+                end
+            end))
+
+            Library:GiveSignal(MinimizeButton.MouseLeave:Connect(function()
+                TweenService:Create(MinimizeButton, Library.TweenInfo, {
+                    BackgroundTransparency = 0.5,
+                }):Play()
+                if MinimizeIconImage then
+                    TweenService:Create(MinimizeIconImage, Library.TweenInfo, {
+                        ImageTransparency = 0.4,
+                    }):Play()
+                end
+            end))
+        end
+
+        if MoveIcon then
+            local MoveIconImage = New("ImageLabel", {
+                ImageColor3 = "OutlineColor",
+                Size = UDim2.fromOffset(26, 26),
+                BackgroundTransparency = 1,
+                Parent = TopBarActions,
+            })
+            Library:ApplyLucideIcon(MoveIconImage, MoveIcon)
+        end
+
         --// Top Right Bar \\--
         RightWrapper = New("Frame", {
             AnchorPoint = Vector2.new(1, 0.5),
             BackgroundTransparency = 1,
-            Position = UDim2.new(1, -49, 0.5, 0),
-            Size = UDim2.new(1, -InitialLeftWidth - 57 - 1, 1, -16),
+            Position = UDim2.new(1, (WindowInfo.Minimizable ~= false and -72 or -42), 0.5, 0),
+            Size = UDim2.new(1, -InitialLeftWidth - (WindowInfo.Minimizable ~= false and 80 or 50) - 1, 1, -16),
             Parent = TopBar,
         })
 
@@ -10516,18 +10648,6 @@ function Library:CreateWindow(WindowInfo)
             Library:ApplyLucideIcon(SearchIconImage, SearchIcon)
         end
 
-        if MoveIcon then
-            local MoveIconImage = New("ImageLabel", {
-                AnchorPoint = Vector2.new(1, 0.5),
-                ImageColor3 = "OutlineColor",
-                Position = UDim2.new(1, -10, 0.5, 0),
-                Size = UDim2.fromOffset(28, 28),
-                SizeConstraint = Enum.SizeConstraint.RelativeYY,
-                Parent = TopBar,
-            })
-            Library:ApplyLucideIcon(MoveIconImage, MoveIcon)
-        end
-
         --// Bottom Bar \\--
         BottomBackground = New("Frame", {
             AnchorPoint = Vector2.new(0, 1),
@@ -10558,27 +10678,148 @@ function Library:CreateWindow(WindowInfo)
                 Parent = BottomBackground,
             })
         )
+        New("UIListLayout", {
+            FillDirection = Enum.FillDirection.Horizontal,
+            HorizontalAlignment = Enum.HorizontalAlignment.Left,
+            VerticalAlignment = Enum.VerticalAlignment.Center,
+            Padding = UDim.new(0, 8),
+            Parent = BottomBar,
+        })
+        New("UIPadding", {
+            PaddingLeft = UDim.new(0, 8),
+            PaddingRight = UDim.new(0, WindowInfo.Resizable and 24 or 8),
+            Parent = BottomBar,
+        })
 
         --// Footer \\-
         FooterLabel = New("TextLabel", {
             BackgroundTransparency = 1,
-            Size = UDim2.fromScale(1, 1),
+            AutomaticSize = Enum.AutomaticSize.X,
+            Size = UDim2.fromScale(0, 1),
             Text = WindowInfo.Footer,
-            TextSize = 14,
+            TextSize = 13,
             TextTransparency = 0.5,
+            TextXAlignment = Enum.TextXAlignment.Left,
             Parent = BottomBar,
         })
+
+        local FooterLinksContainer = New("Frame", {
+            BackgroundTransparency = 1,
+            AutomaticSize = Enum.AutomaticSize.X,
+            Size = UDim2.fromScale(0, 1),
+            Parent = BottomBar,
+        })
+        New("UIListLayout", {
+            FillDirection = Enum.FillDirection.Horizontal,
+            HorizontalAlignment = Enum.HorizontalAlignment.Left,
+            VerticalAlignment = Enum.VerticalAlignment.Center,
+            Padding = UDim.new(0, 6),
+            Parent = FooterLinksContainer,
+        })
+
+        local function CreateFooterLink(LinkInfo)
+            if typeof(LinkInfo) ~= "table" then return end
+            local LinkText = LinkInfo.Text or LinkInfo.Url or "Link"
+            local LinkUrl = LinkInfo.Url or LinkInfo.Text or ""
+            local LinkIconName = LinkInfo.Icon
+            local LinkTooltip = LinkInfo.Tooltip or string.format("Click to copy: %s", LinkUrl)
+
+            local LinkButton = New("TextButton", {
+                BackgroundColor3 = "MainColor",
+                BackgroundTransparency = 0.4,
+                AutomaticSize = Enum.AutomaticSize.X,
+                Size = UDim2.new(0, 0, 0, 16),
+                Text = "",
+                Parent = FooterLinksContainer,
+            })
+            table.insert(
+                Library.Corners,
+                New("UICorner", {
+                    CornerRadius = UDim.new(0, math.max(2, math.floor(WindowInfo.CornerRadius / 2))),
+                    Parent = LinkButton,
+                })
+            )
+            New("UIPadding", {
+                PaddingLeft = UDim.new(0, 6),
+                PaddingRight = UDim.new(0, 6),
+                PaddingTop = UDim.new(0, 1),
+                PaddingBottom = UDim.new(0, 1),
+                Parent = LinkButton,
+            })
+
+            local LinkContent = New("Frame", {
+                BackgroundTransparency = 1,
+                AutomaticSize = Enum.AutomaticSize.X,
+                Size = UDim2.fromScale(0, 1),
+                Parent = LinkButton,
+            })
+            New("UIListLayout", {
+                FillDirection = Enum.FillDirection.Horizontal,
+                VerticalAlignment = Enum.VerticalAlignment.Center,
+                Padding = UDim.new(0, 4),
+                Parent = LinkContent,
+            })
+
+            if LinkIconName then
+                local ParsedIcon = Library:GetCustomIcon(LinkIconName)
+                if ParsedIcon then
+                    local IconImg = New("ImageLabel", {
+                        BackgroundTransparency = 1,
+                        Size = UDim2.fromOffset(12, 12),
+                        ImageColor3 = "AccentColor",
+                        Parent = LinkContent,
+                    })
+                    Library:ApplyLucideIcon(IconImg, ParsedIcon)
+                end
+            end
+
+            local Label = New("TextLabel", {
+                BackgroundTransparency = 1,
+                AutomaticSize = Enum.AutomaticSize.X,
+                Size = UDim2.fromScale(0, 1),
+                Text = LinkText,
+                TextSize = 12,
+                TextColor3 = "AccentColor",
+                Parent = LinkContent,
+            })
+
+            Library:AddTooltip(LinkTooltip, "", LinkButton)
+
+            Library:GiveSignal(LinkButton.MouseEnter:Connect(function()
+                TweenService:Create(LinkButton, Library.TweenInfo, {
+                    BackgroundTransparency = 0.1,
+                }):Play()
+            end))
+
+            Library:GiveSignal(LinkButton.MouseLeave:Connect(function()
+                TweenService:Create(LinkButton, Library.TweenInfo, {
+                    BackgroundTransparency = 0.4,
+                }):Play()
+            end))
+
+            Library:GiveSignal(LinkButton.MouseButton1Click:Connect(function()
+                Library:CopyToClipboard(LinkUrl, LinkText)
+            end))
+
+            return LinkButton
+        end
+
+        if typeof(WindowInfo.FooterLinks) == "table" then
+            for _, Link in ipairs(WindowInfo.FooterLinks) do
+                CreateFooterLink(Link)
+            end
+        end
 
         --// Resize Button \\--
         if WindowInfo.Resizable then
             ResizeButton = New("TextButton", {
-                AnchorPoint = Vector2.new(1, 0),
+                AnchorPoint = Vector2.new(1, 1),
                 BackgroundTransparency = 1,
-                Position = UDim2.new(1, -WindowInfo.CornerRadius / 4, 0, 0),
-                Size = UDim2.fromScale(1, 1),
-                SizeConstraint = Enum.SizeConstraint.RelativeYY,
+                Position = UDim2.new(1, -WindowInfo.CornerRadius / 4, 1, 0),
+                Size = UDim2.fromOffset(20, 20),
                 Text = "",
-                Parent = BottomBar,
+                Parent = MainFrame,
+                ZIndex = 5,
             })
 
             Library:MakeResizable(MainFrame, ResizeButton, function()
@@ -10898,7 +11139,7 @@ function Library:CreateWindow(WindowInfo)
         DividerLine.Position = UDim2.fromOffset(Width, 0)
 
         TitleHolder.Size = UDim2.new(0, Width, 1, 0)
-        RightWrapper.Size = UDim2.new(1, -Width - 57 - 1, 1, -16)
+        RightWrapper.Size = UDim2.new(1, -Width - (WindowInfo.Minimizable ~= false and 80 or 50) - 1, 1, -16)
         Tabs.Size = UDim2.new(0, Width, 1, -70)
         Container.Size = UDim2.new(1, -Width - 1, 1, -70)
 
@@ -10908,6 +11149,201 @@ function Library:CreateWindow(WindowInfo)
         if not IsCompact then
             LastExpandedWidth = Width
         end
+    end
+
+    local IsMinimized = false
+    local PreMinimizeHeight = WindowInfo.Size.Y.Offset
+
+    local function SetMinimizedState(Minimized: boolean)
+        if IsMinimized == Minimized then return end
+        IsMinimized = Minimized
+
+        if IsMinimized then
+            PreMinimizeHeight = MainFrame.Size.Y.Offset
+            if ResizeButton then
+                ResizeButton.Visible = false
+            end
+            Tabs.Visible = false
+            Container.Visible = false
+            DividerLine.Visible = false
+            BottomBackground.Visible = false
+            BottomBar.Visible = false
+
+            local TargetSize = UDim2.new(MainFrame.Size.X.Scale, MainFrame.Size.X.Offset, 0, 48)
+            TweenService:Create(MainFrame, Library.WindowAnimationInfo or Library.TweenInfo, {
+                Size = TargetSize,
+            }):Play()
+
+            local MaxIcon = Library:GetCustomIcon("maximize-2") or Library:GetCustomIcon("chevron-down") or Library:GetCustomIcon("plus")
+            if MaxIcon and MinimizeIconImage then
+                Library:ApplyLucideIcon(MinimizeIconImage, MaxIcon)
+            end
+        else
+            local TargetSize = UDim2.new(MainFrame.Size.X.Scale, MainFrame.Size.X.Offset, 0, math.max(PreMinimizeHeight, Library.MinSize.Y))
+            TweenService:Create(MainFrame, Library.WindowAnimationInfo or Library.TweenInfo, {
+                Size = TargetSize,
+            }):Play()
+
+            local MinIcon = Library:GetCustomIcon("minus") or Library:GetCustomIcon("chevron-up")
+            if MinIcon and MinimizeIconImage then
+                Library:ApplyLucideIcon(MinimizeIconImage, MinIcon)
+            end
+
+            task.delay((Library.WindowAnimationInfo or Library.TweenInfo).Time * 0.4, function()
+                if not IsMinimized then
+                    Tabs.Visible = true
+                    Container.Visible = true
+                    DividerLine.Visible = true
+                    BottomBackground.Visible = true
+                    BottomBar.Visible = true
+                    if ResizeButton and WindowInfo.Resizable then
+                        ResizeButton.Visible = true
+                    end
+                    if Library.ActiveTab then
+                        Library.ActiveTab:Resize(true)
+                    end
+                end
+            end)
+        end
+    end
+
+    if MinimizeButton then
+        MinimizeButton.MouseButton1Click:Connect(function()
+            SetMinimizedState(not IsMinimized)
+        end)
+    end
+
+    function Window:Minimize()
+        SetMinimizedState(true)
+    end
+
+    function Window:Maximize()
+        SetMinimizedState(false)
+    end
+
+    function Window:ToggleMinimize()
+        SetMinimizedState(not IsMinimized)
+    end
+
+    function Window:IsMinimized()
+        return IsMinimized
+    end
+
+    function Window:AddFooterLink(LinkInfo)
+        return CreateFooterLink(LinkInfo)
+    end
+
+    function Window:SetFooterLinks(Links)
+        for _, Child in FooterLinksContainer:GetChildren() do
+            if Child:IsA("GuiObject") then
+                Child:Destroy()
+            end
+        end
+        if typeof(Links) == "table" then
+            for _, Link in ipairs(Links) do
+                CreateFooterLink(Link)
+            end
+        end
+    end
+
+    function Window:AddNotificationTab(...)
+        local Name = "Notifications"
+        local Icon = "bell"
+        local Description = "Notification history and alerts"
+        local Order = 9999
+
+        if select("#", ...) == 1 and typeof(...) == "table" then
+            local Info = select(1, ...)
+            Name = Info.Name or Name
+            Icon = Info.Icon or Icon
+            Description = Info.Description or Description
+            Order = Info.Order or Order
+        elseif select("#", ...) >= 1 then
+            Name = select(1, ...) or Name
+            Icon = select(2, ...) or Icon
+            Description = select(3, ...) or Description
+            Order = select(4, ...) or Order
+        end
+
+        local NotifTab = Window:AddTab({
+            Name = Name,
+            Icon = Icon,
+            Description = Description,
+            Order = Order,
+        })
+
+        local ControlsBox = NotifTab:AddLeftGroupbox("Controls", "sliders")
+        local LogBox = NotifTab:AddRightGroupbox("History", "history")
+
+        local CountLabel = ControlsBox:AddLabel(string.format("Total Notifications: %d", #Library.NotificationHistory))
+
+        ControlsBox:AddButton({
+            Text = "Clear History",
+            DoubleClick = true,
+            Tooltip = "Double click to clear all notification history",
+            Risky = true,
+            Func = function()
+                table.clear(Library.NotificationHistory)
+                CountLabel:SetText("Total Notifications: 0")
+                for _, Element in ipairs(LogBox.Elements or {}) do
+                    if Element.Destroy then
+                        pcall(Element.Destroy, Element)
+                    end
+                end
+                table.clear(LogBox.Elements)
+                LogBox:Resize()
+                Library:Notify({
+                    Title = "History Cleared",
+                    Description = "Notification history has been cleared.",
+                    Time = 2,
+                    Icon = "trash-2",
+                })
+            end,
+        })
+
+        ControlsBox:AddButton({
+            Text = "Copy All Logs",
+            Tooltip = "Copy all notifications as text",
+            Func = function()
+                if #Library.NotificationHistory == 0 then
+                    Library:Notify({
+                        Title = "Clipboard",
+                        Description = "No notifications to copy.",
+                        Time = 2,
+                        Icon = "info",
+                    })
+                    return
+                end
+                local LogLines = {}
+                for _, Item in ipairs(Library.NotificationHistory) do
+                    table.insert(LogLines, string.format("[%s] %s: %s", Item.FormattedTime or "", Item.Title or "", Item.Description or ""))
+                end
+                Library:CopyToClipboard(table.concat(LogLines, "\n"), "Notification History")
+            end,
+        })
+
+        local function AddHistoryEntry(Item)
+            CountLabel:SetText(string.format("Total Notifications: %d", #Library.NotificationHistory))
+            local LabelText = string.format("<b>[%s]</b> %s\n%s", Item.FormattedTime or os.date("%X"), Item.Title or "Notification", Item.Description or "")
+            LogBox:AddLabel({
+                Text = LabelText,
+                DoesWrap = true,
+            })
+            LogBox:AddDivider()
+            LogBox:Resize()
+        end
+
+        for i = #Library.NotificationHistory, 1, -1 do
+            AddHistoryEntry(Library.NotificationHistory[i])
+        end
+
+        local Listener = function(NewItem)
+            if NotifTab.Destroyed then return end
+            AddHistoryEntry(NewItem)
+        end
+        table.insert(Library.NotificationListeners, Listener)
+
+        return NotifTab
     end
 
     function Window:ShowTabInfo(Name, Description)
@@ -11120,6 +11556,9 @@ function Library:CreateWindow(WindowInfo)
             Groupboxes = {},
             Tabboxes = {},
             DependencyGroupboxes = {},
+            SubTabs = {},
+            ActiveSubTab = nil,
+            SubTabHolder = nil,
         }
 
         --// Warning Box \\--
@@ -11266,9 +11705,23 @@ function Library:CreateWindow(WindowInfo)
 
         function Tab:RefreshSides()
             local Offset = WarningBoxHolder.Visible and WarningBox.Size.Y.Offset + 8 or 0
+            if Tab.SubTabHolder then
+                Tab.SubTabHolder.Position = UDim2.fromOffset(2, Offset)
+                Offset = Offset + 36
+            end
+
             for _, Side in Tab.Sides do
                 Side.Position = UDim2.new(Side.Position.X.Scale, 0, 0, Offset)
                 Side.Size = UDim2.new(0.5, -3, 1, -Offset)
+            end
+
+            for _, SubTab in pairs(Tab.SubTabs) do
+                if SubTab.Sides then
+                    for _, Side in ipairs(SubTab.Sides) do
+                        Side.Position = UDim2.new(Side.Position.X.Scale, 0, 0, Offset)
+                        Side.Size = UDim2.new(0.5, -3, 1, -Offset)
+                    end
+                end
             end
         end
 
@@ -11314,7 +11767,7 @@ function Library:CreateWindow(WindowInfo)
                 AutomaticSize = Enum.AutomaticSize.Y,
                 BackgroundTransparency = 1,
                 Size = UDim2.fromScale(1, 0),
-                Parent = if ParentObj.Type == "Groupbox" then ParentObj.Container else (Info.Side == 1 and TabLeft or TabRight),
+                Parent = if ParentObj.Type == "Groupbox" then ParentObj.Container else (Info.Side == 1 and (ParentObj.Sides and ParentObj.Sides[1] or TabLeft) or (ParentObj.Sides and ParentObj.Sides[2] or TabRight)),
             })
             New("UIListLayout", {
                 Padding = UDim.new(0, 6),
@@ -11667,14 +12120,12 @@ function Library:CreateWindow(WindowInfo)
         --// Deprecated - Use Tab:AddTabbox instead.
         function Tab:AddLeftTabbox(Name)
             return Tab:AddTabbox({ Side = 1, Name = Name })
-        end
-
         --// Deprecated - Use Tab:AddTabbox instead.
         function Tab:AddRightTabbox(Name)
             return Tab:AddTabbox({ Side = 2, Name = Name })
         end
 
-        function Tab:AddGroupbox(Info)
+        local function AddGroupbox(self, Info)
             Info = Library:Validate(Info, Templates.Groupbox)
 
             if typeof(Info.Side) == "string" then
@@ -11686,19 +12137,15 @@ function Library:CreateWindow(WindowInfo)
                 Info.Side = SideIndex[lowerSide]
             end
 
+            local ParentColumn = (Info.Side == 1) and (self.Sides and self.Sides[1] or TabLeft) or (self.Sides and self.Sides[2] or TabRight)
             local BoxHolder = New("Frame", {
                 AutomaticSize = Enum.AutomaticSize.Y,
                 BackgroundTransparency = 1,
                 Size = UDim2.fromScale(1, 0),
-                Parent = (Info.Side == 1) and TabLeft or TabRight,
+                Parent = ParentColumn,
             })
             New("UIListLayout", {
                 Padding = UDim.new(0, 6),
-                Parent = BoxHolder,
-            })
-            New("UIPadding", {
-                PaddingBottom = UDim.new(0, 4),
-                PaddingTop = UDim.new(0, 4),
                 Parent = BoxHolder,
             })
 
@@ -11727,9 +12174,6 @@ function Library:CreateWindow(WindowInfo)
                         Parent = GroupboxHolder,
                     })
                 )
-                New("UIListLayout", {
-                    Parent = GroupboxHolder,
-                })
                 Library:AddOutline(GroupboxHolder)
 
                 GroupboxTop = New("Frame", {
@@ -11748,128 +12192,112 @@ function Library:CreateWindow(WindowInfo)
 
                 local BoxIcon = Library:GetCustomIcon(Info.IconName)
                 if BoxIcon then
-                    local GroupboxHeaderIcon = New("ImageLabel", {
-                        AnchorPoint = Vector2.new(0, 0.5),
+                    local GroupboxIcon = New("ImageLabel", {
+                        BackgroundTransparency = 1,
                         ImageColor3 = BoxIcon.Custom and "WhiteColor" or "AccentColor",
-                        Position = UDim2.fromScale(0, 0.5),
-                        Size = UDim2.fromOffset(22, 22),
+                        Size = UDim2.fromOffset(18, 18),
                         Parent = GroupboxTop,
                     })
-                    Library:ApplyLucideIcon(GroupboxHeaderIcon, BoxIcon)
+                    Library:ApplyLucideIcon(GroupboxIcon, BoxIcon)
                 end
 
-                local RightInset = if Info.DisableCollapsing ~= true then 22 else 0
-                local TextsFrame = New("Frame", {
-                    AutomaticSize = Enum.AutomaticSize.Y,
+                GroupboxLabel = New("TextLabel", {
                     BackgroundTransparency = 1,
                     Position = UDim2.fromOffset(BoxIcon and 24 or 0, 0),
-                    Size = UDim2.new(1, -RightInset - (BoxIcon and 24 or 0), 0, 0),
-                    Parent = GroupboxTop,
-                })
-                New("UIListLayout", {
-                    Parent = TextsFrame,
-                })
-                New("UIPadding", {
-                    PaddingBottom = UDim.new(0, 3),
-                    PaddingLeft = UDim.new(0, 6),
-                    PaddingRight = UDim.new(0, 6),
-                    PaddingTop = UDim.new(0, 3),
-                    Parent = TextsFrame,
-                })
-
-                GroupboxLabel = New("TextLabel", {
-                    AutomaticSize = Enum.AutomaticSize.Y,
-                    BackgroundTransparency = 1,
-                    Size = UDim2.fromScale(1, 0),
+                    Size = UDim2.new(1, -(BoxIcon and 48 or 24), 0, 18),
                     Text = Info.Name,
-                    TextSize = 15,
-                    TextWrapped = true,
-                    TextXAlignment = Enum.TextXAlignment.Left,
-                    Parent = TextsFrame,
-                })
-                New("UIPadding", {
-                    PaddingBottom = UDim.new(0, 1),
-                    Parent = GroupboxLabel,
-                })
-
-                GroupboxDescription = New("TextLabel", {
-                    AutomaticSize = Enum.AutomaticSize.Y,
-                    BackgroundTransparency = 1,
-                    Size = UDim2.fromScale(1, 0),
-                    Text = Info.Description or "",
                     TextSize = 14,
-                    TextTransparency = 0.5,
-                    TextWrapped = true,
                     TextXAlignment = Enum.TextXAlignment.Left,
-                    Visible = (Info.Description ~= nil),
-                    Parent = TextsFrame,
+                    Parent = GroupboxTop,
                 })
 
                 GroupboxCollapseArrow = New("ImageButton", {
-                    Visible = Info.DisableCollapsing ~= true,
-                    AnchorPoint = Vector2.new(1, 0.5),
+                    AnchorPoint = Vector2.new(1, 0),
                     BackgroundTransparency = 1,
-                    ImageColor3 = "WhiteColor",
-                    Position = UDim2.fromScale(1, 0.5),
-                    Size = UDim2.fromOffset(22, 22),
+                    Position = UDim2.fromScale(1, 0),
+                    Size = UDim2.fromOffset(18, 18),
+                    Visible = Info.DisableCollapsing ~= true,
                     Parent = GroupboxTop,
                 })
                 if ArrowIcon then
-                    Library:ApplyLucideIcon(GroupboxCollapseArrow, ArrowIcon, 180)
+                    Library:ApplyLucideIcon(GroupboxCollapseArrow, ArrowIcon)
+                end
+
+                if Info.Description then
+                    GroupboxDescription = New("TextLabel", {
+                        BackgroundTransparency = 1,
+                        Position = UDim2.fromOffset(BoxIcon and 24 or 0, 18),
+                        Size = UDim2.new(1, -(BoxIcon and 48 or 24), 0, 0),
+                        Text = Info.Description,
+                        TextSize = 13,
+                        TextTransparency = 0.5,
+                        TextWrapped = true,
+                        TextXAlignment = Enum.TextXAlignment.Left,
+                        Parent = GroupboxTop,
+                    })
                 end
 
                 GroupboxLine = Library:MakeLine(GroupboxHolder, {
-                    LayoutOrder = 1,
+                    Position = UDim2.fromOffset(0, 0),
                     Size = UDim2.new(1, 0, 0, 1),
                 })
 
-                GroupboxContainer = New("ScrollingFrame", {
-                    AutomaticCanvasSize = Enum.AutomaticSize.Y,
+                GroupboxContainer = New("Frame", {
                     BackgroundTransparency = 1,
-                    BorderSizePixel = 0,
-                    CanvasSize = UDim2.fromScale(0, 0),
-                    LayoutOrder = 2,
-                    ScrollBarThickness = 0,
                     Size = UDim2.fromScale(1, 0),
                     Parent = GroupboxHolder,
                 })
-
                 GroupboxList = New("UIListLayout", {
-                    Padding = UDim.new(0, 8),
+                    Padding = UDim.new(0, 6),
                     Parent = GroupboxContainer,
                 })
                 New("UIPadding", {
-                    PaddingBottom = UDim.new(0, 7),
-                    PaddingLeft = UDim.new(0, 7),
-                    PaddingRight = UDim.new(0, 7),
-                    PaddingTop = UDim.new(0, 7),
+                    PaddingBottom = UDim.new(0, 6),
+                    PaddingLeft = UDim.new(0, 6),
+                    PaddingRight = UDim.new(0, 6),
+                    PaddingTop = UDim.new(0, 6),
                     Parent = GroupboxContainer,
                 })
             end
 
             local Groupbox: any = {
-                Type = "Groupbox",
-
                 Name = Info.Name,
                 Description = Info.Description,
+
+                Type = "Groupbox",
 
                 Connections = {},
                 Destroyed = false,
 
                 Visible = true,
                 Collapsed = false,
+                PopOutEnabled = Info.PopOut ~= false,
 
                 BoxHolder = BoxHolder,
                 Holder = GroupboxHolder,
                 Container = GroupboxContainer,
-
                 Tab = Tab,
+
                 DependencyBoxes = {},
-                Elements = {}
+                Elements = {},
             }
 
-            local ResizeTween
-            local CollapseArrowTween
+            Library:MakeBoxPopOut(Groupbox, {
+                Enabled = Info.PopOut ~= false,
+
+                Header = GroupboxTop,
+                Children = function()
+                    return { GroupboxHolder }
+                end,
+
+                Before = function(PoppingOut)
+                    GroupboxLine.Visible = PoppingOut
+                end,
+
+                After = function()
+                    Groupbox:Resize()
+                end,
+            })
 
             function Groupbox:Resize()
                 if ResizeTween then
@@ -12077,6 +12505,286 @@ function Library:CreateWindow(WindowInfo)
             return Tab:AddGroupbox({ Side = 2, Name = Name, IconName = IconName, Visible = Visible, Collapsed = Collapsed, DisableCollapsing = DisableCollapsing })
         end
 
+        function Tab:AddSubTab(NameOrInfo, IconName)
+            local SubName = "SubTab"
+            local SubIcon = IconName
+
+            if typeof(NameOrInfo) == "table" then
+                SubName = NameOrInfo.Name or SubName
+                SubIcon = NameOrInfo.Icon or SubIcon
+            else
+                SubName = tostring(NameOrInfo or SubName)
+            end
+
+            if not Tab.SubTabHolder then
+                Tab.SubTabHolder = New("ScrollingFrame", {
+                    AutomaticCanvasSize = Enum.AutomaticSize.X,
+                    BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    CanvasSize = UDim2.fromScale(0, 0),
+                    ScrollBarImageTransparency = 1,
+                    ScrollBarThickness = 0,
+                    Position = UDim2.fromOffset(2, 0),
+                    Size = UDim2.new(1, -4, 0, 32),
+                    Parent = TabContainer,
+                })
+                New("UIListLayout", {
+                    FillDirection = Enum.FillDirection.Horizontal,
+                    Padding = UDim.new(0, 6),
+                    VerticalAlignment = Enum.VerticalAlignment.Center,
+                    Parent = Tab.SubTabHolder,
+                })
+                New("UIPadding", {
+                    PaddingLeft = UDim.new(0, 2),
+                    PaddingRight = UDim.new(0, 2),
+                    Parent = Tab.SubTabHolder,
+                })
+
+                TabLeft.Visible = false
+                TabRight.Visible = false
+            end
+
+            local SubTabButton = New("TextButton", {
+                BackgroundColor3 = "MainColor",
+                BackgroundTransparency = 1,
+                AutomaticSize = Enum.AutomaticSize.X,
+                Size = UDim2.new(0, 0, 1, 0),
+                Text = "",
+                Parent = Tab.SubTabHolder,
+            })
+            table.insert(
+                Library.Corners,
+                New("UICorner", {
+                    CornerRadius = UDim.new(0, WindowInfo.CornerRadius),
+                    Parent = SubTabButton,
+                })
+            )
+            New("UIPadding", {
+                PaddingBottom = UDim.new(0, 6),
+                PaddingLeft = UDim.new(0, 12),
+                PaddingRight = UDim.new(0, 12),
+                PaddingTop = UDim.new(0, 6),
+                Parent = SubTabButton,
+            })
+
+            local SubButtonContent = New("Frame", {
+                BackgroundTransparency = 1,
+                AutomaticSize = Enum.AutomaticSize.X,
+                Size = UDim2.fromScale(0, 1),
+                Parent = SubTabButton,
+            })
+            New("UIListLayout", {
+                FillDirection = Enum.FillDirection.Horizontal,
+                VerticalAlignment = Enum.VerticalAlignment.Center,
+                Padding = UDim.new(0, 6),
+                Parent = SubButtonContent,
+            })
+
+            local SubTabIconLabel
+            local ParsedSubIcon = Library:GetCustomIcon(SubIcon)
+            if ParsedSubIcon then
+                SubTabIconLabel = New("ImageLabel", {
+                    BackgroundTransparency = 1,
+                    ImageColor3 = ParsedSubIcon.Custom and "WhiteColor" or "AccentColor",
+                    ImageTransparency = 0.5,
+                    Size = UDim2.fromOffset(16, 16),
+                    Parent = SubButtonContent,
+                })
+                Library:ApplyLucideIcon(SubTabIconLabel, ParsedSubIcon)
+            end
+
+            local SubTabLabel = New("TextLabel", {
+                BackgroundTransparency = 1,
+                AutomaticSize = Enum.AutomaticSize.X,
+                Size = UDim2.fromScale(0, 1),
+                Text = SubName,
+                TextSize = 14,
+                TextTransparency = 0.5,
+                Parent = SubButtonContent,
+            })
+
+            local SubTabActiveIndicator = New("Frame", {
+                AnchorPoint = Vector2.new(0, 1),
+                BackgroundColor3 = "AccentColor",
+                BorderSizePixel = 0,
+                Position = UDim2.fromScale(0, 1),
+                Size = UDim2.new(1, 0, 0, 2),
+                Visible = false,
+                Parent = SubTabButton,
+            })
+
+            local SubTabLeft = New("ScrollingFrame", {
+                AutomaticCanvasSize = Enum.AutomaticSize.Y,
+                BackgroundTransparency = 1,
+                CanvasSize = UDim2.fromScale(0, 0),
+                ScrollBarImageTransparency = 1,
+                ScrollBarThickness = 0,
+                Size = UDim2.new(0.5, -3, 1, 0),
+                Visible = false,
+                Parent = TabContainer,
+            })
+            New("UIListLayout", {
+                Padding = UDim.new(0, 2),
+                Parent = SubTabLeft,
+            })
+            New("UIPadding", {
+                PaddingBottom = UDim.new(0, 2),
+                PaddingLeft = UDim.new(0, 2),
+                PaddingRight = UDim.new(0, 2),
+                PaddingTop = UDim.new(0, 2),
+                Parent = SubTabLeft,
+            })
+
+            local SubTabRight = New("ScrollingFrame", {
+                AnchorPoint = Vector2.new(1, 0),
+                AutomaticCanvasSize = Enum.AutomaticSize.Y,
+                BackgroundTransparency = 1,
+                CanvasSize = UDim2.fromScale(0, 0),
+                Position = UDim2.fromScale(1, 0),
+                ScrollBarImageTransparency = 1,
+                ScrollBarThickness = 0,
+                Size = UDim2.new(0.5, -3, 1, 0),
+                Visible = false,
+                Parent = TabContainer,
+            })
+            New("UIListLayout", {
+                Padding = UDim.new(0, 2),
+                Parent = SubTabRight,
+            })
+            New("UIPadding", {
+                PaddingBottom = UDim.new(0, 2),
+                PaddingLeft = UDim.new(0, 2),
+                PaddingRight = UDim.new(0, 2),
+                PaddingTop = UDim.new(0, 2),
+                Parent = SubTabRight,
+            })
+
+            local SubTabObj: any = {
+                Name = SubName,
+                Tab = Tab,
+                Sides = { SubTabLeft, SubTabRight },
+                Groupboxes = {},
+                Tabboxes = {},
+                DependencyGroupboxes = {},
+                Elements = {},
+                DependencyBoxes = {},
+            }
+
+            function SubTabObj:Show()
+                if Tab.ActiveSubTab == SubTabObj then return end
+                if Tab.ActiveSubTab and Tab.ActiveSubTab.Hide then
+                    Tab.ActiveSubTab:Hide()
+                end
+
+                SubTabLeft.Visible = true
+                SubTabRight.Visible = true
+
+                TweenService:Create(SubTabButton, Library.TweenInfo, {
+                    BackgroundTransparency = 0,
+                }):Play()
+                TweenService:Create(SubTabLabel, Library.TweenInfo, {
+                    TextTransparency = 0,
+                }):Play()
+                if SubTabIconLabel then
+                    TweenService:Create(SubTabIconLabel, Library.TweenInfo, {
+                        ImageTransparency = 0,
+                    }):Play()
+                end
+                SubTabActiveIndicator.Visible = true
+
+                Tab.ActiveSubTab = SubTabObj
+                Tab:RefreshSides()
+            end
+
+            function SubTabObj:Hide()
+                SubTabLeft.Visible = false
+                SubTabRight.Visible = false
+
+                TweenService:Create(SubTabButton, Library.TweenInfo, {
+                    BackgroundTransparency = 1,
+                }):Play()
+                TweenService:Create(SubTabLabel, Library.TweenInfo, {
+                    TextTransparency = 0.5,
+                }):Play()
+                if SubTabIconLabel then
+                    TweenService:Create(SubTabIconLabel, Library.TweenInfo, {
+                        ImageTransparency = 0.5,
+                    }):Play()
+                end
+                SubTabActiveIndicator.Visible = false
+
+                if Tab.ActiveSubTab == SubTabObj then
+                    Tab.ActiveSubTab = nil
+                end
+            end
+
+            function SubTabObj:Hover(Hovering)
+                if Tab.ActiveSubTab == SubTabObj then return end
+                TweenService:Create(SubTabLabel, Library.TweenInfo, {
+                    TextTransparency = Hovering and 0.25 or 0.5,
+                }):Play()
+                if SubTabIconLabel then
+                    TweenService:Create(SubTabIconLabel, Library.TweenInfo, {
+                        ImageTransparency = Hovering and 0.25 or 0.5,
+                    }):Play()
+                end
+            end
+
+            function SubTabObj:Resize()
+                for _, Groupbox in SubTabObj.Groupboxes do
+                    if Groupbox.Resize then
+                        Groupbox:Resize()
+                    end
+                end
+                for _, Tabbox in SubTabObj.Tabboxes do
+                    if Tabbox.Resize then
+                        Tabbox:Resize()
+                    end
+                end
+            end
+
+            SubTabButton.MouseEnter:Connect(function()
+                SubTabObj:Hover(true)
+            end)
+            SubTabButton.MouseLeave:Connect(function()
+                SubTabObj:Hover(false)
+            end)
+            SubTabButton.MouseButton1Click:Connect(function()
+                SubTabObj:Show()
+            end)
+
+            SubTabObj.AddGroupbox = function(selfObj, Info)
+                return AddGroupbox(selfObj, Info)
+            end
+            SubTabObj.AddLeftGroupbox = function(selfObj, Name, Icon, Visible, Collapsed, DisableCollapsing)
+                return AddGroupbox(selfObj, { Side = 1, Name = Name, IconName = Icon, Visible = Visible, Collapsed = Collapsed, DisableCollapsing = DisableCollapsing })
+            end
+            SubTabObj.AddRightGroupbox = function(selfObj, Name, Icon, Visible, Collapsed, DisableCollapsing)
+                return AddGroupbox(selfObj, { Side = 2, Name = Name, IconName = Icon, Visible = Visible, Collapsed = Collapsed, DisableCollapsing = DisableCollapsing })
+            end
+            SubTabObj.AddTabbox = function(selfObj, Info)
+                return AddTabbox(selfObj, Info)
+            end
+            SubTabObj.AddLeftTabbox = function(selfObj, Name)
+                return AddTabbox(selfObj, { Side = 1, Name = Name })
+            end
+            SubTabObj.AddRightTabbox = function(selfObj, Name)
+                return AddTabbox(selfObj, { Side = 2, Name = Name })
+            end
+
+            setmetatable(SubTabObj, BaseGroupbox)
+
+            Tab.SubTabs[SubName] = SubTabObj
+
+            if not Tab.ActiveSubTab then
+                SubTabObj:Show()
+            end
+
+            Tab:RefreshSides()
+
+            return SubTabObj
+        end
+
         function Tab:Hover(Hovering)
             if Library.ActiveTab == Tab then
                 return
@@ -12188,6 +12896,19 @@ function Library:CreateWindow(WindowInfo)
                 if DepGroupbox.Destroy then
                     DepGroupbox:Destroy()
                 end
+            end
+
+            if Tab.SubTabs then
+                for _, SubTab in pairs(Tab.SubTabs) do
+                    if SubTab.Destroy then
+                        SubTab:Destroy()
+                    end
+                end
+                table.clear(Tab.SubTabs)
+            end
+
+            if Tab.SubTabHolder then
+                Tab.SubTabHolder:Destroy()
             end
 
             if TabCanvas then

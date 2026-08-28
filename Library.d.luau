@@ -743,6 +743,72 @@ export type Tabbox = {
     RefreshPopOutPlaceholder: (self: Tabbox) -> (),
 }
 
+export type FooterLinkInfo = {
+    Text: string?,
+    Url: string?,
+    Icon: string?,
+    Tooltip: string?,
+}
+
+export type NotificationHistoryItem = {
+    Title: string?,
+    Description: string,
+    FormattedTime: string,
+    Timestamp: number,
+    Icon: (string | number)?,
+    IconColor: (Color3 | string)?,
+    BigIcon: string?,
+    Persist: boolean?,
+}
+
+export type SubTab = BaseGroupbox & {
+    Name: string,
+    Tab: Tab,
+    Sides: { ScrollingFrame },
+    Groupboxes: { [string]: Groupbox },
+    Tabboxes: { [string]: Tabbox },
+    DependencyGroupboxes: { [number]: DependencyGroupbox },
+    Elements: { [any]: any },
+    DependencyBoxes: { [any]: any },
+
+    Show: (self: SubTab) -> (),
+    Hide: (self: SubTab) -> (),
+    Hover: (self: SubTab, Hovering: boolean) -> (),
+    Resize: (self: SubTab) -> (),
+    AddGroupbox: (
+        self: SubTab,
+        Info: {
+            Side: number | string,
+            Name: string,
+            IconName: string?,
+            Description: string?,
+            Visible: boolean?,
+            Collapsed: boolean?,
+            DisableCollapsing: boolean?,
+            PopOut: boolean?,
+        }
+    ) -> Groupbox,
+    AddLeftGroupbox: (
+        self: SubTab,
+        Name: string,
+        IconName: string?,
+        Visible: boolean?,
+        Collapsed: boolean?,
+        DisableCollapsing: boolean?
+    ) -> Groupbox,
+    AddRightGroupbox: (
+        self: SubTab,
+        Name: string,
+        IconName: string?,
+        Visible: boolean?,
+        Collapsed: boolean?,
+        DisableCollapsing: boolean?
+    ) -> Groupbox,
+    AddTabbox: (self: SubTab, Info: { Side: number | string, Name: string?, PopOut: boolean? }) -> Tabbox,
+    AddLeftTabbox: (self: SubTab, Name: string?) -> Tabbox,
+    AddRightTabbox: (self: SubTab, Name: string?) -> Tabbox,
+}
+
 export type Tab = {
     Window: Window,
     Groupboxes: { [string]: Groupbox },
@@ -750,6 +816,9 @@ export type Tab = {
     DependencyGroupboxes: { [number]: DependencyGroupbox },
     Sides: { ScrollingFrame },
     WarningBox: { IsNormal: boolean, LockSize: boolean, Visible: boolean, Title: string, Text: string },
+    SubTabs: { [string]: SubTab },
+    ActiveSubTab: SubTab?,
+    SubTabHolder: ScrollingFrame?,
 
     UpdateWarningBox: (
         self: Tab,
@@ -788,6 +857,11 @@ export type Tab = {
     AddTabbox: (self: Tab, Info: { Side: number | string, Name: string?, PopOut: boolean? }) -> Tabbox,
     AddLeftTabbox: (self: Tab, Name: string?) -> Tabbox,
     AddRightTabbox: (self: Tab, Name: string?) -> Tabbox,
+    AddSubTab: (
+        self: Tab,
+        Info: { Name: string, Icon: string? } | string,
+        Icon: string?
+    ) -> SubTab,
     Hover: (self: Tab, Hovering: boolean) -> (),
     Show: (self: Tab) -> (),
     Hide: (self: Tab) -> (),
@@ -944,6 +1018,19 @@ export type Window = {
         TabSwipeOffset: number?,
         TabSwipeFrom: ("left" | "right" | "top" | "bottom" | string)?
     ) -> (),
+    Minimize: (self: Window) -> (),
+    Maximize: (self: Window) -> (),
+    ToggleMinimize: (self: Window) -> (),
+    IsMinimized: (self: Window) -> boolean,
+    AddFooterLink: (self: Window, LinkInfo: FooterLinkInfo) -> TextButton,
+    SetFooterLinks: (self: Window, Links: { FooterLinkInfo }) -> (),
+    AddNotificationTab: (
+        self: Window,
+        Info: { Name: string?, Icon: string?, Description: string?, Order: number? } | string?,
+        Icon: string?,
+        Description: string?,
+        Order: number?
+    ) -> Tab,
     Toggle: (self: Window, Value: boolean?) -> (),
 }
 
@@ -970,6 +1057,8 @@ export type Library = {
     KeybindContainer: Frame?,
     KeybindToggles: { [number]: KeybindToggle },
     Notifications: { [GuiObject]: Notification },
+    NotificationHistory: { NotificationHistoryItem },
+    NotificationListeners: { (NotificationHistoryItem) -> () },
     ToggleKeybind: Enum.KeyCode,
     TweenInfo: TweenInfo,
     NotifyTweenInfo: TweenInfo,
@@ -1045,6 +1134,7 @@ export type Library = {
     MouseIsOverFrame: (self: Library, Frame: GuiObject, Mouse: Vector2) -> boolean,
     IsInsideFrame: (self: Library, ParentFrame: GuiObject, Frame: GuiObject) -> boolean,
     SafeCallback: (self: Library, Func: (...any) -> ...any, ...any) -> ...any,
+    CopyToClipboard: (self: Library, Text: string, Title: string?) -> boolean,
     MakeDraggable: (
         self: Library,
         UI: GuiObject,
@@ -1141,6 +1231,7 @@ export type Library = {
         WindowInfo: {
             Title: string?,
             Footer: string?,
+            FooterLinks: { FooterLinkInfo }?,
             Position: UDim2?,
             Size: UDim2?,
             Icon: string?,
@@ -1148,6 +1239,7 @@ export type Library = {
             BackgroundImage: string?,
             AutoShow: boolean?,
             Center: boolean?,
+            Minimizable: boolean?,
             Resizable: boolean?,
             DisableSearch: boolean?,
             SearchbarSize: UDim2?,

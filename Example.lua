@@ -29,6 +29,27 @@ local Window = Library:CreateWindow({
 	Icon = 95816097006870,
 	NotifySide = "Right",
 	ShowCustomCursor = true,
+	Minimizable = true,
+	FooterLinks = {
+		{
+			Text = "Website",
+			Url = "https://example.com",
+			Icon = "globe",
+			Tooltip = "Click to copy website address",
+		},
+		{
+			Text = "Discord",
+			Url = "https://discord.gg/example",
+			Icon = "message-square",
+			Tooltip = "Click to copy Discord invite",
+		},
+		{
+			Text = "GitHub",
+			Url = "https://github.com/saiops-cc/Obsidian-main",
+			Icon = "github",
+			Tooltip = "Click to copy GitHub repository",
+		},
+	},
 })
 
 -- CALLBACK NOTE:
@@ -41,9 +62,36 @@ local Window = Library:CreateWindow({
 local Tabs = {
 	-- Creates a new tab titled Main
 	Main = Window:AddTab("Main", "user"),
+	SubTabsDemo = Window:AddTab("Sub Tabs", "layers"),
+	Notifications = Window:AddNotificationTab("Notifications", "bell"),
 	Key = Window:AddKeyTab("Key System"),
 	["UI Settings"] = Window:AddTab("UI Settings", "settings"),
 }
+
+--// Sub Tabs Showcase \\--
+do
+	local SubTabCombat = Tabs.SubTabsDemo:AddSubTab("Combat", "swords")
+	local SubTabVisuals = Tabs.SubTabsDemo:AddSubTab("Visuals", "eye")
+	local SubTabMisc = Tabs.SubTabsDemo:AddSubTab("Misc", "settings")
+
+	local CombatLeft = SubTabCombat:AddLeftGroupbox("Aimbot", "crosshair")
+	CombatLeft:AddToggle("Sub_AimbotEnabled", { Text = "Enable Aimbot", Default = false })
+	CombatLeft:AddSlider("Sub_AimbotFOV", { Text = "FOV", Default = 90, Min = 10, Max = 180, Rounding = 0 })
+
+	local CombatRight = SubTabCombat:AddRightGroupbox("Silent Aim", "target")
+	CombatRight:AddToggle("Sub_SilentAim", { Text = "Silent Aim", Default = false })
+
+	local VisualsLeft = SubTabVisuals:AddLeftGroupbox("ESP", "user-check")
+	VisualsLeft:AddToggle("Sub_ESPBoxes", { Text = "Box ESP", Default = true })
+	VisualsLeft:AddToggle("Sub_ESPTracers", { Text = "Tracer Lines", Default = false })
+
+	local VisualsRight = SubTabVisuals:AddRightGroupbox("World Visuals", "sun")
+	VisualsRight:AddToggle("Sub_FullBright", { Text = "Fullbright", Default = false })
+
+	local MiscLeft = SubTabMisc:AddLeftGroupbox("Player Utilities", "activity")
+	MiscLeft:AddSlider("Sub_WalkSpeed", { Text = "WalkSpeed", Default = 16, Min = 16, Max = 120, Rounding = 0 })
+	MiscLeft:AddSlider("Sub_JumpPower", { Text = "JumpPower", Default = 50, Min = 50, Max = 250, Rounding = 0 })
+end
 
 
 --[[
@@ -783,6 +831,19 @@ MenuGroup:AddSlider("UICornerSlider", {
 MenuGroup:AddDivider()
 MenuGroup:AddLabel("Menu bind")
 	:AddKeyPicker("MenuKeybind", { Default = "RightShift", NoUI = true, Text = "Menu keybind" })
+
+MenuGroup:AddButton("Toggle Minimize", function()
+	Window:ToggleMinimize()
+end)
+
+MenuGroup:AddButton("Send Test Notification", function()
+	Library:Notify({
+		Title = "Test Alert",
+		Description = string.format("Notification generated at %s", os.date("%X")),
+		Time = 4,
+		Icon = "bell",
+	})
+end)
 
 MenuGroup:AddButton("Unload", function()
 	Library:Unload()
