@@ -11652,7 +11652,21 @@ function Library:CreateWindow(WindowInfo)
         end)
     end
 
-    --// Small Vertical Floating Tab (Minimized Widget) \\--
+    --// Small Smart Floating Tab (Minimized Widget) \\--
+    local CurrentFloatingOrientation = "vertical"
+    local LastFloatingTabPosition = UDim2.new(0, 20, 0.5, -107)
+
+    local FloatLayout
+    local FloatBrandCard
+    local FloatBrandLayout
+    local FloatLine1
+    local FloatLine2
+    local FloatAvatarCard
+    local FloatActionsHolder
+    local FloatActionsLayout
+
+    local SetMinimizedState
+
     FloatingTabWidget = New("TextButton", {
         Name = "ObsidianFloatingTab",
         Text = "",
@@ -11660,8 +11674,8 @@ function Library:CreateWindow(WindowInfo)
         BackgroundColor3 = function()
             return Library:GetBetterColor(Library.Scheme.BackgroundColor, -1)
         end,
-        Position = UDim2.new(0, 20, 0.5, -108),
-        Size = UDim2.fromOffset(56, 216),
+        Position = LastFloatingTabPosition,
+        Size = UDim2.fromOffset(56, 214),
         Visible = false,
         ZIndex = 25,
         Parent = ScreenGui,
@@ -11690,18 +11704,20 @@ function Library:CreateWindow(WindowInfo)
         Parent = FloatingTabWidget,
     })
 
-    New("UIListLayout", {
+    FloatLayout = New("UIListLayout", {
         FillDirection = Enum.FillDirection.Vertical,
         HorizontalAlignment = Enum.HorizontalAlignment.Center,
-        VerticalAlignment = Enum.VerticalAlignment.Top,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
         Padding = UDim.new(0, 6),
         Parent = FloatingTabWidget,
     })
 
-    -- 1. App Icon Frame
-    local FloatAppIconFrame = New("Frame", {
-        BackgroundColor3 = "MainColor",
-        Size = UDim2.fromOffset(36, 36),
+    -- 1. Brand Card (App Icon + SAIOPS HUB text)
+    FloatBrandCard = New("Frame", {
+        BackgroundColor3 = function()
+            return Library:GetBetterColor(Library.Scheme.BackgroundColor, 1)
+        end,
+        Size = UDim2.new(1, 0, 0, 58),
         ZIndex = 26,
         Parent = FloatingTabWidget,
     })
@@ -11709,25 +11725,53 @@ function Library:CreateWindow(WindowInfo)
         Library.Corners,
         New("UICorner", {
             CornerRadius = UDim.new(0, 10),
-            Parent = FloatAppIconFrame,
+            Parent = FloatBrandCard,
         })
     )
-    Library:AddOutline(FloatAppIconFrame)
-    Library:AddTooltip("SAIOPS HUB", "", FloatAppIconFrame)
+    Library:AddOutline(FloatBrandCard)
+    Library:AddTooltip("SAIOPS HUB", "", FloatBrandCard)
+
+    FloatBrandLayout = New("UIListLayout", {
+        FillDirection = Enum.FillDirection.Vertical,
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+        Padding = UDim.new(0, 3),
+        Parent = FloatBrandCard,
+    })
 
     local FloatAppIconImg = New("ImageLabel", {
-        AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundTransparency = 1,
-        Position = UDim2.fromScale(0.5, 0.5),
         Size = UDim2.fromOffset(26, 26),
         Image = CustomImageManager.GetAsset("AppIcon") or (WindowInfo.Icon and (typeof(WindowInfo.Icon) == "number" and ("rbxassetid://" .. WindowInfo.Icon) or WindowInfo.Icon)) or "rbxassetid://95816097006870",
         ZIndex = 27,
-        Parent = FloatAppIconFrame,
+        Parent = FloatBrandCard,
     })
 
-    -- 2. Player Headshot Frame
-    local FloatAvatarFrame = New("Frame", {
-        BackgroundColor3 = "MainColor",
+    local FloatBrandText = New("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 20),
+        Text = "SAIOPS\nHUB",
+        TextColor3 = "AccentColor",
+        TextSize = 8.5,
+        Font = Enum.Font.GothamBold,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        ZIndex = 27,
+        Parent = FloatBrandCard,
+    })
+
+    -- 2. Separator Line 1
+    FloatLine1 = Library:MakeLine(FloatingTabWidget, {
+        Size = UDim2.new(0, 36, 0, 1),
+        ZIndex = 26,
+    })
+
+    -- 3. Player Avatar Frame
+    FloatAvatarCard = New("Frame", {
+        BackgroundColor3 = function()
+            return Library:GetBetterColor(Library.Scheme.BackgroundColor, 1)
+        end,
         Size = UDim2.fromOffset(36, 36),
         ZIndex = 26,
         Parent = FloatingTabWidget,
@@ -11736,15 +11780,15 @@ function Library:CreateWindow(WindowInfo)
         Library.Corners,
         New("UICorner", {
             CornerRadius = UDim.new(1, 0),
-            Parent = FloatAvatarFrame,
+            Parent = FloatAvatarCard,
         })
     )
     New("UIStroke", {
-        Color = "AccentColor",
+        Color = Color3.fromRGB(75, 80, 95),
         Thickness = 1.5,
-        Parent = FloatAvatarFrame,
+        Parent = FloatAvatarCard,
     })
-    Library:AddTooltip(LocalPlayer.DisplayName .. " (@" .. LocalPlayer.Name .. ")", "", FloatAvatarFrame)
+    Library:AddTooltip(string.format("Player: %s (@%s)", LocalPlayer.DisplayName, LocalPlayer.Name), "", FloatAvatarCard)
 
     local FloatAvatarImg = New("ImageLabel", {
         AnchorPoint = Vector2.new(0.5, 0.5),
@@ -11753,7 +11797,7 @@ function Library:CreateWindow(WindowInfo)
         Size = UDim2.fromScale(1, 1),
         Image = string.format("rbxthumb://type=AvatarHeadShot&id=%d&w=150&h=150", LocalPlayer.UserId),
         ZIndex = 27,
-        Parent = FloatAvatarFrame,
+        Parent = FloatAvatarCard,
     })
     table.insert(
         Library.Corners,
@@ -11775,35 +11819,35 @@ function Library:CreateWindow(WindowInfo)
         end)
     end)
 
-    -- 3. SAIOPS HUB Brand Text
-    local FloatBrandText = New("TextLabel", {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 22),
-        Text = "SAIOPS\nHUB",
-        TextColor3 = "AccentColor",
-        TextSize = 9,
-        Font = Enum.Font.GothamBold,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Center,
-        TextYAlignment = Enum.TextYAlignment.Center,
-        ZIndex = 26,
-        Parent = FloatingTabWidget,
-    })
-
-    -- 4. Separator Line
-    Library:MakeLine(FloatingTabWidget, {
+    -- 4. Separator Line 2
+    FloatLine2 = Library:MakeLine(FloatingTabWidget, {
         Size = UDim2.new(0, 36, 0, 1),
         ZIndex = 26,
     })
 
-    -- 5. Restore / Reopen Button
+    -- 5. Nav Action Buttons Holder
+    FloatActionsHolder = New("Frame", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 68),
+        ZIndex = 26,
+        Parent = FloatingTabWidget,
+    })
+    FloatActionsLayout = New("UIListLayout", {
+        FillDirection = Enum.FillDirection.Vertical,
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+        Padding = UDim.new(0, 4),
+        Parent = FloatActionsHolder,
+    })
+
+    -- 5a. Restore / Reopen Button
     local FloatReopenBtn = New("TextButton", {
         BackgroundColor3 = "MainColor",
         BackgroundTransparency = 1,
-        Size = UDim2.fromOffset(32, 32),
+        Size = UDim2.fromOffset(30, 30),
         Text = "",
-        ZIndex = 26,
-        Parent = FloatingTabWidget,
+        ZIndex = 27,
+        Parent = FloatActionsHolder,
     })
     table.insert(
         Library.Corners,
@@ -11824,7 +11868,7 @@ function Library:CreateWindow(WindowInfo)
             Size = UDim2.fromOffset(16, 16),
             ImageColor3 = "FontColor",
             ImageTransparency = 0.4,
-            ZIndex = 27,
+            ZIndex = 28,
             Parent = FloatReopenBtn,
         })
         Library:ApplyLucideIcon(ReopenIconImg, ReopenIcon)
@@ -11853,17 +11897,19 @@ function Library:CreateWindow(WindowInfo)
         end
     end)
     FloatReopenBtn.MouseButton1Click:Connect(function()
-        SetMinimizedState(false)
+        if SetMinimizedState then
+            SetMinimizedState(false)
+        end
     end)
 
-    -- 6. Notification History Button
+    -- 5b. Notification History Button
     local FloatNotifBtn = New("TextButton", {
         BackgroundColor3 = "MainColor",
         BackgroundTransparency = 1,
-        Size = UDim2.fromOffset(32, 32),
+        Size = UDim2.fromOffset(30, 30),
         Text = "",
-        ZIndex = 26,
-        Parent = FloatingTabWidget,
+        ZIndex = 27,
+        Parent = FloatActionsHolder,
     })
     table.insert(
         Library.Corners,
@@ -11884,7 +11930,7 @@ function Library:CreateWindow(WindowInfo)
             Size = UDim2.fromOffset(16, 16),
             ImageColor3 = "FontColor",
             ImageTransparency = 0.4,
-            ZIndex = 27,
+            ZIndex = 28,
             Parent = FloatNotifBtn,
         })
         Library:ApplyLucideIcon(FloatBellImg, FloatBellIcon)
@@ -11896,7 +11942,7 @@ function Library:CreateWindow(WindowInfo)
         Position = UDim2.new(1, -2, 0, 2),
         Size = UDim2.fromOffset(6, 6),
         Visible = (#Library.NotificationHistory > 0),
-        ZIndex = 28,
+        ZIndex = 29,
         Parent = FloatNotifBtn,
     })
     table.insert(
@@ -11933,19 +11979,80 @@ function Library:CreateWindow(WindowInfo)
         NotifHistoryPopover.Visible = not NotifHistoryPopover.Visible
         if NotifHistoryPopover.Visible then
             RefreshPopCards()
-            NotifHistoryPopover.AnchorPoint = Vector2.new(0, 0)
             local Cam = workspace.CurrentCamera
+            local VpX = Cam and Cam.ViewportSize.X or 1000
             local VpY = Cam and Cam.ViewportSize.Y or 800
-            NotifHistoryPopover.Position = UDim2.fromOffset(
-                FloatingTabWidget.AbsolutePosition.X + FloatingTabWidget.AbsoluteSize.X + 10,
-                math.clamp(FloatingTabWidget.AbsolutePosition.Y, 10, VpY - 370)
-            )
+
+            if CurrentFloatingOrientation == "horizontal" then
+                NotifHistoryPopover.AnchorPoint = Vector2.new(0.5, 0)
+                local TargetX = math.clamp(FloatingTabWidget.AbsolutePosition.X + (FloatingTabWidget.AbsoluteSize.X / 2), 160, VpX - 160)
+                local TargetY = (FloatingTabWidget.AbsolutePosition.Y + FloatingTabWidget.AbsoluteSize.Y + 380 <= VpY)
+                    and (FloatingTabWidget.AbsolutePosition.Y + FloatingTabWidget.AbsoluteSize.Y + 10)
+                    or (FloatingTabWidget.AbsolutePosition.Y - 370)
+                NotifHistoryPopover.Position = UDim2.fromOffset(TargetX, math.clamp(TargetY, 10, VpY - 370))
+            else
+                NotifHistoryPopover.AnchorPoint = Vector2.new(0, 0)
+                local TargetX = (FloatingTabWidget.AbsolutePosition.X + FloatingTabWidget.AbsoluteSize.X + 320 <= VpX)
+                    and (FloatingTabWidget.AbsolutePosition.X + FloatingTabWidget.AbsoluteSize.X + 10)
+                    or (FloatingTabWidget.AbsolutePosition.X - 310)
+                local TargetY = math.clamp(FloatingTabWidget.AbsolutePosition.Y, 10, VpY - 370)
+                NotifHistoryPopover.Position = UDim2.fromOffset(math.clamp(TargetX, 10, VpX - 310), TargetY)
+            end
+        end
+    end)
+
+    local function UpdateFloatingOrientation(ForceOrientation: string?)
+        local ViewportSize = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920, 1080)
+        local Pos = FloatingTabWidget.AbsolutePosition
+        local Size = FloatingTabWidget.AbsoluteSize
+
+        local DistLeft = math.max(0, Pos.X)
+        local DistRight = math.max(0, ViewportSize.X - (Pos.X + Size.X))
+        local DistTop = math.max(0, Pos.Y)
+        local DistBottom = math.max(0, ViewportSize.Y - (Pos.Y + Size.Y))
+
+        local MinHoriz = math.min(DistLeft, DistRight)
+        local MinVert = math.min(DistTop, DistBottom)
+
+        local NewOrientation = ForceOrientation or (MinHoriz <= MinVert and "vertical" or "horizontal")
+        if CurrentFloatingOrientation == NewOrientation and not ForceOrientation then
+            return
+        end
+        CurrentFloatingOrientation = NewOrientation
+
+        if NewOrientation == "horizontal" then
+            FloatingTabWidget.Size = UDim2.fromOffset(248, 52)
+            FloatLayout.FillDirection = Enum.FillDirection.Horizontal
+            FloatBrandLayout.FillDirection = Enum.FillDirection.Horizontal
+            FloatBrandCard.Size = UDim2.new(0, 96, 1, 0)
+            FloatBrandText.Size = UDim2.new(0, 54, 1, 0)
+            FloatLine1.Size = UDim2.new(0, 1, 0, 28)
+            FloatLine2.Size = UDim2.new(0, 1, 0, 28)
+            FloatActionsLayout.FillDirection = Enum.FillDirection.Horizontal
+            FloatActionsHolder.Size = UDim2.new(0, 68, 1, 0)
+        else
+            FloatingTabWidget.Size = UDim2.fromOffset(56, 214)
+            FloatLayout.FillDirection = Enum.FillDirection.Vertical
+            FloatBrandLayout.FillDirection = Enum.FillDirection.Vertical
+            FloatBrandCard.Size = UDim2.new(1, 0, 0, 58)
+            FloatBrandText.Size = UDim2.new(1, 0, 0, 20)
+            FloatLine1.Size = UDim2.new(0, 36, 0, 1)
+            FloatLine2.Size = UDim2.new(0, 36, 0, 1)
+            FloatActionsLayout.FillDirection = Enum.FillDirection.Vertical
+            FloatActionsHolder.Size = UDim2.new(1, 0, 0, 68)
+        end
+    end
+
+    FloatingTabWidget:GetPropertyChangedSignal("Position"):Connect(function()
+        if FloatingTabWidget.Visible then
+            LastFloatingTabPosition = FloatingTabWidget.Position
+            UpdateFloatingOrientation()
         end
     end)
 
     local IsMinimized = false
 
-    local function SetMinimizedState(Minimized: boolean)
+    SetMinimizedState = function(Minimized: boolean)
         if IsMinimized == Minimized then return end
         IsMinimized = Minimized
 
@@ -11955,26 +12062,30 @@ function Library:CreateWindow(WindowInfo)
 
             MainFrame.Visible = false
 
-            local Cam = workspace.CurrentCamera
-            local VpX = Cam and Cam.ViewportSize.X or 1000
-            local VpY = Cam and Cam.ViewportSize.Y or 800
-
-            FloatingTabWidget.Position = UDim2.fromOffset(
-                math.clamp(MainFrame.AbsolutePosition.X, 10, VpX - 70),
-                math.clamp(MainFrame.AbsolutePosition.Y, 10, VpY - 230)
-            )
+            FloatingTabWidget.Position = LastFloatingTabPosition
+            UpdateFloatingOrientation()
             FloatingTabWidget.Visible = true
 
             if FloatNotifBadge then
                 FloatNotifBadge.Visible = (#Library.NotificationHistory > 0)
             end
         else
+            LastFloatingTabPosition = FloatingTabWidget.Position
             FloatingTabWidget.Visible = false
             if NotifHistoryPopover then
                 NotifHistoryPopover.Visible = false
             end
 
+            -- Center MainFrame in the middle of the screen every time it reopens
+            local Cam = workspace.CurrentCamera
+            local VpX = Cam and Cam.ViewportSize.X or 1920
+            local VpY = Cam and Cam.ViewportSize.Y or 1080
+            MainFrame.Position = UDim2.fromOffset(
+                math.max(10, math.floor((VpX - MainFrame.AbsoluteSize.X) / 2)),
+                math.max(10, math.floor((VpY - MainFrame.AbsoluteSize.Y) / 2))
+            )
             MainFrame.Visible = true
+
             if Tabs then Tabs.Visible = true end
             if Container then Container.Visible = true end
             if DividerLine then DividerLine.Visible = true end
