@@ -1730,11 +1730,31 @@ end
 local function RestoreMouseIcon()
     pcall(function() 
         RunService:UnbindFromRenderStep(Library.ShowCursorBinding)
-        RunService.RenderStepped:Wait()
     end)
 
-    UserInputService.MouseIconEnabled = Library.OriginalMouseIconEnabled
+    UserInputService.MouseIconEnabled = (Library.OriginalMouseIconEnabled ~= false)
     if Cursor then Cursor.Visible = false end
+end
+
+local function EnableMouseIcon()
+    if Library.IsMobile or Library.Unloaded then
+        return
+    end
+
+    local ShowCursorBinding = Library.ShowCursorBinding
+    pcall(function() RunService:UnbindFromRenderStep(ShowCursorBinding) end)
+    RunService:BindToRenderStep(ShowCursorBinding, Enum.RenderPriority.Last.Value, function()
+        if Library.Unloaded == true or not (Library.Toggled and ScreenGui and ScreenGui.Parent) then
+            RestoreMouseIcon()
+            return
+        end
+
+        UserInputService.MouseIconEnabled = not Library.ShowCustomCursor
+        if Cursor then
+            Cursor.Position = UDim2.fromOffset(Mouse.X, Mouse.Y)
+            Cursor.Visible = Library.ShowCustomCursor
+        end
+    end)
 end
 
 --// Notification \\--
@@ -13154,9 +13174,15 @@ function Library:CreateWindow(WindowInfo)
         IsMinimized = Minimized
 
         if IsMinimized then
+            Library.Toggled = false
+
             if ResizeButton then ResizeButton.Visible = false end
             if NotifHistoryPopover then NotifHistoryPopover.Visible = false end
             if ActiveFeaturesPopover then ActiveFeaturesPopover.Visible = false end
+            if Library.DropdownModalInstance then
+                Library.DropdownModalInstance:Destroy()
+                Library.DropdownModalInstance = nil
+            end
 
             MainFrame.Visible = false
 
@@ -13170,7 +13196,25 @@ function Library:CreateWindow(WindowInfo)
             if Library.UpdateActiveFeaturesCount then
                 Library:UpdateActiveFeaturesCount()
             end
+
+            if WindowInfo.UnlockMouseWhileOpen then
+                ModalElement.Modal = false
+            end
+
+            RestoreMouseIcon()
+            TooltipLabel.Visible = false
+
+            for _, Option in Library.Options do
+                if Option.Type == "ColorPicker" then
+                    Option.ColorMenu:Close()
+                    Option.ContextMenu:Close()
+                elseif Option.Type == "Dropdown" or Option.Type == "KeyPicker" then
+                    Option.Menu:Close()
+                end
+            end
         else
+            Library.Toggled = true
+
             LastFloatingTabPosition = FloatingTabWidget.Position
             FloatingTabWidget.Visible = false
             if NotifHistoryPopover then
@@ -13201,6 +13245,12 @@ function Library:CreateWindow(WindowInfo)
             if Library.ActiveTab then
                 Library.ActiveTab:Resize(true)
             end
+
+            if WindowInfo.UnlockMouseWhileOpen then
+                ModalElement.Modal = true
+            end
+
+            EnableMouseIcon()
         end
     end
 
@@ -15887,10 +15937,8 @@ function Library:CreateWindow(WindowInfo)
 
             if ShouldBeOpen then
                 SetMinimizedState(false)
-                Library.Toggled = true
             else
                 SetMinimizedState(true)
-                Library.Toggled = false
             end
         else
             if typeof(Value) == "boolean" then
@@ -15899,37 +15947,29 @@ function Library:CreateWindow(WindowInfo)
                 Library.Toggled = not Library.Toggled
             end
             MainFrame.Visible = Library.Toggled
-        end
 
-        if WindowInfo.UnlockMouseWhileOpen then
-            ModalElement.Modal = Library.Toggled
-        end
+            if WindowInfo.UnlockMouseWhileOpen then
+                ModalElement.Modal = Library.Toggled
+            end
 
-        if Library.Toggled and not Library.IsMobile then
-            local ShowCursorBinding = Library.ShowCursorBinding
-            Library.OriginalMouseIconEnabled = UserInputService.MouseIconEnabled
+            if Library.Toggled then
+                EnableMouseIcon()
+            else
+                RestoreMouseIcon()
+                TooltipLabel.Visible = false
 
-            pcall(function() RunService:UnbindFromRenderStep(ShowCursorBinding) end)
-            RunService:BindToRenderStep(ShowCursorBinding, Enum.RenderPriority.Last.Value, function()
-                UserInputService.MouseIconEnabled = not Library.ShowCustomCursor
-
-                Cursor.Position = UDim2.fromOffset(Mouse.X, Mouse.Y)
-                Cursor.Visible = Library.ShowCustomCursor
-
-                if Library.Unloaded == true or not (Library.Toggled and ScreenGui and ScreenGui.Parent) then
-                    RestoreMouseIcon()
+                if Library.DropdownModalInstance then
+                    Library.DropdownModalInstance:Destroy()
+                    Library.DropdownModalInstance = nil
                 end
-            end)
-        elseif not Library.Toggled then
-            RestoreMouseIcon()
-            TooltipLabel.Visible = false
 
-            for _, Option in Library.Options do
-                if Option.Type == "ColorPicker" then
-                    Option.ColorMenu:Close()
-                    Option.ContextMenu:Close()
-                elseif Option.Type == "Dropdown" or Option.Type == "KeyPicker" then
-                    Option.Menu:Close()
+                for _, Option in Library.Options do
+                    if Option.Type == "ColorPicker" then
+                        Option.ColorMenu:Close()
+                        Option.ContextMenu:Close()
+                    elseif Option.Type == "Dropdown" or Option.Type == "KeyPicker" then
+                        Option.Menu:Close()
+                    end
                 end
             end
         end
@@ -16844,6 +16884,7 @@ Library:GiveSignal(Teams.ChildRemoved:Connect(OnTeamChange))
 
 function Library:Unload()
     Library.Unloaded = true
+    RestoreMouseIcon()
 
     --// Disconnect connections
     for Index = #Library.Signals, 1, -1 do
