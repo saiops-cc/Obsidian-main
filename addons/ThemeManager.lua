@@ -59,7 +59,7 @@ local ThemeManager = {
     BuiltInThemes = {
         ["NeonEdge"] = {
             1,
-            { FontColor = "edf6f9", MainColor = "2f0049", AccentColor = "48bfe3", BackgroundColor = "170025", OutlineColor = "5e60ce", BackgroundImage = "" },
+            { FontColor = "edf6f9", MainColor = "3b0b5d", AccentColor = "48bfe3", BackgroundColor = "280041", OutlineColor = "000000", BackgroundImage = "" },
         },
         ["Default"] = {
             2,

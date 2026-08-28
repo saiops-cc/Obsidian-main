@@ -65,7 +65,7 @@ Library:Notify({
 
 -- Build Tabs
 local Tabs = {
-    Main = Window:AddTab({ Name = "Main", Icon = "home", Description = "Primary combat & automation features" }),
+    Main = Window:AddTab({ Name = "Main", Icon = "house", Description = "Primary combat & automation features" }),
     Visuals = Window:AddTab({ Name = "Visuals", Icon = "eye", Description = "ESP and visual enhancements" }),
     Settings = Window:AddTab({ Name = "Settings", Icon = "settings", Description = "Configurations and theme settings" }),
 }
