@@ -61,11 +61,11 @@ local Window = Library:CreateWindow({
 -- You can find more icons in https://lucide.dev/
 local Tabs = {
 	-- Creates a new tab titled Main
-	Main = Window:AddTab("Main", "user"),
-	SubTabsDemo = Window:AddTab("Sub Tabs", "layers"),
-	Notifications = Window:AddNotificationTab("Notifications", "bell"),
+	Main = Window:AddTab({ Name = "Main", Icon = "user", Description = "Primary cheats and character controls" }),
+	SubTabsDemo = Window:AddTab({ Name = "Sub Tabs", Icon = "layers", Description = "Demonstration of nested sub-tab modules" }),
+	Notifications = Window:AddNotificationTab({ Name = "Notifications", Icon = "bell", Description = "Recent notification history and alerts" }),
 	Key = Window:AddKeyTab("Key System"),
-	["UI Settings"] = Window:AddTab("UI Settings", "settings"),
+	["UI Settings"] = Window:AddTab({ Name = "UI Settings", Icon = "settings", Description = "Visual themes and menu customization" }),
 }
 
 --// Sub Tabs Showcase \\--

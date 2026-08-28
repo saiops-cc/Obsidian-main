@@ -1838,29 +1838,28 @@ function Library:SafeCallback(Func: (...any) -> ...any, ...: any)
     return table.unpack(Result, 2, Result.n)
 end
 
-function Library:CopyToClipboard(Text: string, Title: string?)
-    if setclipboard then
-        pcall(setclipboard, tostring(Text))
-        if Library.Notify then
-            Library:Notify({
-                Title = Title or "Clipboard",
-                Description = "Copied to clipboard: " .. tostring(Text),
-                Time = 3,
-                Icon = "copy",
-            })
-        end
-        return true
-    else
-        if Library.Notify then
-            Library:Notify({
-                Title = Title or "Clipboard",
-                Description = tostring(Text),
-                Time = 4,
-                Icon = "alert-triangle",
-            })
-        end
-        return false
+function Library:CopyToClipboard(Text: string, Title: string?, Silent: boolean?)
+    local Copied = false
+    if typeof(setclipboard) == "function" then
+        Copied = pcall(setclipboard, tostring(Text))
+    elseif typeof(toclipboard) == "function" then
+        Copied = pcall(toclipboard, tostring(Text))
+    elseif typeof(set_clipboard) == "function" then
+        Copied = pcall(set_clipboard, tostring(Text))
+    elseif typeof(syn) == "table" and typeof(syn.write_clipboard) == "function" then
+        Copied = pcall(syn.write_clipboard, tostring(Text))
     end
+
+    if not Silent and Library.Notify then
+        Library:Notify({
+            Title = Title or "Clipboard",
+            Description = Copied and (Title and string.format("Copied %s to clipboard!", Title) or "Copied to clipboard!") or tostring(Text),
+            Time = 2,
+            Icon = Copied and "check" or "copy",
+            SkipHistory = true,
+        })
+    end
+    return Copied
 end
 
 function GetOverlappingDraggable(UI: GuiObject, TargetPos: Vector2?)
@@ -9863,6 +9862,7 @@ function Library:Notify(...)
         Data.SoundId = Info.SoundId
         Data.Steps = Info.Steps
         Data.Persist = Info.Persist
+        Data.SkipHistory = Info.SkipHistory == true
 
         Data.Icon = Info.Icon
         Data.BigIcon = Info.BigIcon
@@ -9877,23 +9877,25 @@ function Library:Notify(...)
     end
     Data.Destroyed = false
 
-    local HistoryItem = {
-        Title = Data.Title or "Notification",
-        TitleColor = Data.TitleColor,
-        Description = Data.Description or "",
-        DescriptionColor = Data.DescriptionColor,
-        Time = os.time(),
-        FormattedTime = os.date("%X"),
-        Icon = Data.Icon or Data.BigIcon or "bell",
-        IconColor = Data.IconColor,
-        Steps = Data.Steps,
-    }
-    table.insert(Library.NotificationHistory, 1, HistoryItem)
-    if #Library.NotificationHistory > 150 then
-        table.remove(Library.NotificationHistory)
-    end
-    for _, Listener in ipairs(Library.NotificationListeners) do
-        task.spawn(Listener, HistoryItem)
+    if not Data.SkipHistory then
+        local HistoryItem = {
+            Title = Data.Title or "Notification",
+            TitleColor = Data.TitleColor,
+            Description = Data.Description or "",
+            DescriptionColor = Data.DescriptionColor,
+            Time = os.time(),
+            FormattedTime = os.date("%X"),
+            Icon = Data.Icon or Data.BigIcon or "bell",
+            IconColor = Data.IconColor,
+            Steps = Data.Steps,
+        }
+        table.insert(Library.NotificationHistory, 1, HistoryItem)
+        if #Library.NotificationHistory > 150 then
+            table.remove(Library.NotificationHistory)
+        end
+        for _, Listener in ipairs(Library.NotificationListeners) do
+            task.spawn(Listener, HistoryItem)
+        end
     end
 
     local DeletedInstance = false
@@ -10448,38 +10450,131 @@ function Library:CreateWindow(WindowInfo)
             Position = UDim2.new(1, -8, 0.5, 0),
             Size = UDim2.fromScale(0, 1),
             AutomaticSize = Enum.AutomaticSize.X,
+            ZIndex = 10,
             Parent = TopBar,
         })
         New("UIListLayout", {
             FillDirection = Enum.FillDirection.Horizontal,
             HorizontalAlignment = Enum.HorizontalAlignment.Right,
             VerticalAlignment = Enum.VerticalAlignment.Center,
-            Padding = UDim.new(0, 6),
+            Padding = UDim.new(0, 4),
             Parent = TopBarActions,
         })
 
+        local NotifHistoryButton = New("TextButton", {
+            BackgroundColor3 = "MainColor",
+            BackgroundTransparency = 1,
+            Size = UDim2.fromOffset(26, 26),
+            Text = "",
+            ZIndex = 11,
+            Parent = TopBarActions,
+        })
+        table.insert(
+            Library.Corners,
+            New("UICorner", {
+                CornerRadius = UDim.new(0, math.max(4, math.floor(WindowInfo.CornerRadius / 2))),
+                Parent = NotifHistoryButton,
+            })
+        )
+        Library:AddTooltip("Notification History", "", NotifHistoryButton)
+
+        local BellIcon = Library:GetCustomIcon("bell")
+        local BellIconImage
+        if BellIcon then
+            BellIconImage = New("ImageLabel", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                BackgroundTransparency = 1,
+                Position = UDim2.fromScale(0.5, 0.5),
+                ImageColor3 = "FontColor",
+                ImageTransparency = 0.4,
+                Size = UDim2.fromOffset(15, 15),
+                ZIndex = 12,
+                Parent = NotifHistoryButton,
+            })
+            Library:ApplyLucideIcon(BellIconImage, BellIcon)
+        end
+
+        local NotifBadge = New("Frame", {
+            AnchorPoint = Vector2.new(1, 0),
+            BackgroundColor3 = "AccentColor",
+            Position = UDim2.new(1, -2, 0, 2),
+            Size = UDim2.fromOffset(6, 6),
+            Visible = (#Library.NotificationHistory > 0),
+            ZIndex = 13,
+            Parent = NotifHistoryButton,
+        })
+        table.insert(
+            Library.Corners,
+            New("UICorner", {
+                CornerRadius = UDim.new(1, 0),
+                Parent = NotifBadge,
+            })
+        )
+
+        Library:GiveSignal(NotifHistoryButton.MouseEnter:Connect(function()
+            TweenService:Create(NotifHistoryButton, Library.TweenInfo, {
+                BackgroundTransparency = 0.85,
+            }):Play()
+            if BellIconImage then
+                TweenService:Create(BellIconImage, Library.TweenInfo, {
+                    ImageTransparency = 0,
+                    ImageColor3 = Library.Scheme.AccentColor,
+                }):Play()
+            end
+        end))
+
+        Library:GiveSignal(NotifHistoryButton.MouseLeave:Connect(function()
+            TweenService:Create(NotifHistoryButton, Library.TweenInfo, {
+                BackgroundTransparency = 1,
+            }):Play()
+            if BellIconImage then
+                TweenService:Create(BellIconImage, Library.TweenInfo, {
+                    ImageTransparency = 0.4,
+                    ImageColor3 = Library.Scheme.FontColor,
+                }):Play()
+            end
+        end))
+
         local MinimizeButton
+        local MinimizeBar
         local MinimizeIconImage
         if WindowInfo.Minimizable ~= false then
             MinimizeButton = New("TextButton", {
                 BackgroundColor3 = "MainColor",
-                BackgroundTransparency = 0.5,
+                BackgroundTransparency = 1,
                 Size = UDim2.fromOffset(26, 26),
                 Text = "",
+                ZIndex = 11,
                 Parent = TopBarActions,
             })
             table.insert(
                 Library.Corners,
                 New("UICorner", {
-                    CornerRadius = UDim.new(0, math.max(2, math.floor(WindowInfo.CornerRadius / 2))),
+                    CornerRadius = UDim.new(0, math.max(4, math.floor(WindowInfo.CornerRadius / 2))),
                     Parent = MinimizeButton,
                 })
             )
-            Library:AddOutline(MinimizeButton)
             Library:AddTooltip("Minimize / Restore Window", "", MinimizeButton)
 
-            local MinIcon = Library:GetCustomIcon("minus") or Library:GetCustomIcon("chevron-up")
-            if MinIcon then
+            MinimizeBar = New("Frame", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                BackgroundColor3 = "FontColor",
+                BackgroundTransparency = 0.35,
+                Position = UDim2.fromScale(0.5, 0.5),
+                Size = UDim2.fromOffset(12, 2.5),
+                ZIndex = 12,
+                Parent = MinimizeButton,
+            })
+            table.insert(
+                Library.Corners,
+                New("UICorner", {
+                    CornerRadius = UDim.new(0, 2),
+                    Parent = MinimizeBar,
+                })
+            )
+
+            local MaxIcon = Library:GetCustomIcon("maximize-2") or Library:GetCustomIcon("chevron-down") or Library:GetCustomIcon("plus")
+            if MaxIcon then
                 MinimizeIconImage = New("ImageLabel", {
                     AnchorPoint = Vector2.new(0.5, 0.5),
                     BackgroundTransparency = 1,
@@ -10487,29 +10582,47 @@ function Library:CreateWindow(WindowInfo)
                     ImageColor3 = "FontColor",
                     ImageTransparency = 0.4,
                     Size = UDim2.fromOffset(14, 14),
+                    Visible = false,
+                    ZIndex = 12,
                     Parent = MinimizeButton,
                 })
-                Library:ApplyLucideIcon(MinimizeIconImage, MinIcon)
+                Library:ApplyLucideIcon(MinimizeIconImage, MaxIcon)
             end
 
             Library:GiveSignal(MinimizeButton.MouseEnter:Connect(function()
                 TweenService:Create(MinimizeButton, Library.TweenInfo, {
-                    BackgroundTransparency = 0.1,
+                    BackgroundTransparency = 0.85,
                 }):Play()
-                if MinimizeIconImage then
+                if MinimizeBar and MinimizeBar.Visible then
+                    TweenService:Create(MinimizeBar, Library.TweenInfo, {
+                        BackgroundTransparency = 0,
+                        BackgroundColor3 = Library.Scheme.AccentColor,
+                        Size = UDim2.fromOffset(14, 3),
+                    }):Play()
+                end
+                if MinimizeIconImage and MinimizeIconImage.Visible then
                     TweenService:Create(MinimizeIconImage, Library.TweenInfo, {
                         ImageTransparency = 0,
+                        ImageColor3 = Library.Scheme.AccentColor,
                     }):Play()
                 end
             end))
 
             Library:GiveSignal(MinimizeButton.MouseLeave:Connect(function()
                 TweenService:Create(MinimizeButton, Library.TweenInfo, {
-                    BackgroundTransparency = 0.5,
+                    BackgroundTransparency = 1,
                 }):Play()
-                if MinimizeIconImage then
+                if MinimizeBar and MinimizeBar.Visible then
+                    TweenService:Create(MinimizeBar, Library.TweenInfo, {
+                        BackgroundTransparency = 0.35,
+                        BackgroundColor3 = Library.Scheme.FontColor,
+                        Size = UDim2.fromOffset(12, 2.5),
+                    }):Play()
+                end
+                if MinimizeIconImage and MinimizeIconImage.Visible then
                     TweenService:Create(MinimizeIconImage, Library.TweenInfo, {
                         ImageTransparency = 0.4,
+                        ImageColor3 = Library.Scheme.FontColor,
                     }):Play()
                 end
             end))
@@ -10520,6 +10633,7 @@ function Library:CreateWindow(WindowInfo)
                 ImageColor3 = "OutlineColor",
                 Size = UDim2.fromOffset(26, 26),
                 BackgroundTransparency = 1,
+                ZIndex = 11,
                 Parent = TopBarActions,
             })
             Library:ApplyLucideIcon(MoveIconImage, MoveIcon)
@@ -10529,8 +10643,9 @@ function Library:CreateWindow(WindowInfo)
         RightWrapper = New("Frame", {
             AnchorPoint = Vector2.new(1, 0.5),
             BackgroundTransparency = 1,
-            Position = UDim2.new(1, (WindowInfo.Minimizable ~= false and -72 or -42), 0.5, 0),
-            Size = UDim2.new(1, -InitialLeftWidth - (WindowInfo.Minimizable ~= false and 80 or 50) - 1, 1, -16),
+            Position = UDim2.new(1, (WindowInfo.Minimizable ~= false and -98 or -68), 0.5, 0),
+            Size = UDim2.new(1, -InitialLeftWidth - (WindowInfo.Minimizable ~= false and 108 or 78) - 1, 1, -16),
+            ZIndex = 2,
             Parent = TopBar,
         })
 
@@ -11151,6 +11266,364 @@ function Library:CreateWindow(WindowInfo)
         end
     end
 
+    --// Notification History Popover \\--
+    local NotifHistoryPopover = New("Frame", {
+        AnchorPoint = Vector2.new(1, 0),
+        BackgroundColor3 = "BackgroundColor",
+        Position = UDim2.new(1, -8, 0, 48),
+        Size = UDim2.fromOffset(300, 360),
+        Visible = false,
+        ZIndex = 30,
+        Parent = MainFrame,
+    })
+    table.insert(
+        Library.Corners,
+        New("UICorner", {
+            CornerRadius = UDim.new(0, WindowInfo.CornerRadius),
+            Parent = NotifHistoryPopover,
+        })
+    )
+    Library:AddOutline(NotifHistoryPopover)
+
+    local NotifPopTop = New("Frame", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 36),
+        ZIndex = 31,
+        Parent = NotifHistoryPopover,
+    })
+    New("UIPadding", {
+        PaddingLeft = UDim.new(0, 12),
+        PaddingRight = UDim.new(0, 8),
+        Parent = NotifPopTop,
+    })
+
+    local NotifPopTitle = New("TextLabel", {
+        AnchorPoint = Vector2.new(0, 0.5),
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0.5, 0),
+        Size = UDim2.new(1, -64, 1, 0),
+        Text = "Notification History",
+        TextSize = 14,
+        TextColor3 = "FontColor",
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 32,
+        Parent = NotifPopTop,
+    })
+
+    local NotifPopActions = New("Frame", {
+        AnchorPoint = Vector2.new(1, 0.5),
+        BackgroundTransparency = 1,
+        Position = UDim2.new(1, 0, 0.5, 0),
+        Size = UDim2.fromOffset(56, 26),
+        ZIndex = 32,
+        Parent = NotifPopTop,
+    })
+    New("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        HorizontalAlignment = Enum.HorizontalAlignment.Right,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+        Padding = UDim.new(0, 4),
+        Parent = NotifPopActions,
+    })
+
+    local PopClearBtn = New("TextButton", {
+        BackgroundTransparency = 1,
+        Size = UDim2.fromOffset(24, 24),
+        Text = "",
+        ZIndex = 33,
+        Parent = NotifPopActions,
+    })
+    local TrashIcon = Library:GetCustomIcon("trash-2")
+    if TrashIcon then
+        local TrashImg = New("ImageLabel", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            BackgroundTransparency = 1,
+            Position = UDim2.fromScale(0.5, 0.5),
+            Size = UDim2.fromOffset(14, 14),
+            ImageColor3 = "FontColor",
+            ImageTransparency = 0.4,
+            ZIndex = 34,
+            Parent = PopClearBtn,
+        })
+        Library:ApplyLucideIcon(TrashImg, TrashIcon)
+        PopClearBtn.MouseEnter:Connect(function()
+            TweenService:Create(TrashImg, Library.TweenInfo, {
+                ImageTransparency = 0,
+                ImageColor3 = Color3.fromRGB(255, 75, 75),
+            }):Play()
+        end)
+        PopClearBtn.MouseLeave:Connect(function()
+            TweenService:Create(TrashImg, Library.TweenInfo, {
+                ImageTransparency = 0.4,
+                ImageColor3 = Library.Scheme.FontColor,
+            }):Play()
+        end)
+    end
+    Library:AddTooltip("Clear history", "", PopClearBtn)
+
+    local PopCloseBtn = New("TextButton", {
+        BackgroundTransparency = 1,
+        Size = UDim2.fromOffset(24, 24),
+        Text = "",
+        ZIndex = 33,
+        Parent = NotifPopActions,
+    })
+    local CloseIcon = Library:GetCustomIcon("x")
+    if CloseIcon then
+        local CloseImg = New("ImageLabel", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            BackgroundTransparency = 1,
+            Position = UDim2.fromScale(0.5, 0.5),
+            Size = UDim2.fromOffset(14, 14),
+            ImageColor3 = "FontColor",
+            ImageTransparency = 0.4,
+            ZIndex = 34,
+            Parent = PopCloseBtn,
+        })
+        Library:ApplyLucideIcon(CloseImg, CloseIcon)
+        PopCloseBtn.MouseEnter:Connect(function()
+            TweenService:Create(CloseImg, Library.TweenInfo, {
+                ImageTransparency = 0,
+            }):Play()
+        end)
+        PopCloseBtn.MouseLeave:Connect(function()
+            TweenService:Create(CloseImg, Library.TweenInfo, {
+                ImageTransparency = 0.4,
+            }):Play()
+        end)
+    end
+    PopCloseBtn.MouseButton1Click:Connect(function()
+        NotifHistoryPopover.Visible = false
+    end)
+
+    local NotifPopLine = Library:MakeLine(NotifHistoryPopover, {
+        Position = UDim2.fromOffset(0, 36),
+        Size = UDim2.new(1, 0, 0, 1),
+        ZIndex = 31,
+    })
+
+    local NotifPopScroll = New("ScrollingFrame", {
+        AutomaticCanvasSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        CanvasSize = UDim2.fromScale(0, 0),
+        Position = UDim2.fromOffset(0, 37),
+        ScrollBarThickness = 3,
+        Size = UDim2.new(1, 0, 1, -37),
+        ZIndex = 31,
+        Parent = NotifHistoryPopover,
+    })
+    New("UIListLayout", {
+        Padding = UDim.new(0, 6),
+        Parent = NotifPopScroll,
+    })
+    New("UIPadding", {
+        PaddingBottom = UDim.new(0, 8),
+        PaddingLeft = UDim.new(0, 8),
+        PaddingRight = UDim.new(0, 8),
+        PaddingTop = UDim.new(0, 8),
+        Parent = NotifPopScroll,
+    })
+
+    local function CreateNotificationCard(Item, ParentContainer, BaseZIndex)
+        BaseZIndex = BaseZIndex or 1
+        local Card = New("Frame", {
+            BackgroundColor3 = function()
+                return Library:GetBetterColor(Library.Scheme.BackgroundColor, 2)
+            end,
+            Size = UDim2.new(1, 0, 0, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
+            ZIndex = BaseZIndex,
+            Parent = ParentContainer,
+        })
+        table.insert(Library.Corners, New("UICorner", {
+            CornerRadius = UDim.new(0, math.max(4, math.floor(WindowInfo.CornerRadius / 2))),
+            Parent = Card,
+        }))
+        Library:AddOutline(Card)
+        New("UIPadding", {
+            PaddingBottom = UDim.new(0, 8),
+            PaddingLeft = UDim.new(0, 10),
+            PaddingRight = UDim.new(0, 10),
+            PaddingTop = UDim.new(0, 8),
+            Parent = Card,
+        })
+        New("UIListLayout", {
+            Padding = UDim.new(0, 4),
+            Parent = Card,
+        })
+
+        local HeaderRow = New("Frame", {
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 18),
+            ZIndex = BaseZIndex + 1,
+            Parent = Card,
+        })
+
+        local TimeLabel = New("TextLabel", {
+            BackgroundTransparency = 1,
+            Position = UDim2.fromOffset(0, 0),
+            Size = UDim2.new(1, -24, 1, 0),
+            Text = string.format("[%s]", Item.FormattedTime or os.date("%X")),
+            TextColor3 = "AccentColor",
+            TextSize = 13,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = BaseZIndex + 2,
+            Parent = HeaderRow,
+        })
+
+        local CardCopyBtn = New("TextButton", {
+            AnchorPoint = Vector2.new(1, 0),
+            BackgroundTransparency = 1,
+            Position = UDim2.fromScale(1, 0),
+            Size = UDim2.fromOffset(18, 18),
+            Text = "",
+            ZIndex = BaseZIndex + 2,
+            Parent = HeaderRow,
+        })
+        local CopyIcon = Library:GetCustomIcon("copy")
+        local CopyImg
+        if CopyIcon then
+            CopyImg = New("ImageLabel", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                BackgroundTransparency = 1,
+                Position = UDim2.fromScale(0.5, 0.5),
+                Size = UDim2.fromOffset(14, 14),
+                ImageColor3 = "FontColor",
+                ImageTransparency = 0.4,
+                ZIndex = BaseZIndex + 3,
+                Parent = CardCopyBtn,
+            })
+            Library:ApplyLucideIcon(CopyImg, CopyIcon)
+        end
+        Library:AddTooltip("Copy notification", "", CardCopyBtn)
+
+        CardCopyBtn.MouseEnter:Connect(function()
+            if CopyImg then
+                TweenService:Create(CopyImg, Library.TweenInfo, {
+                    ImageTransparency = 0,
+                    ImageColor3 = Library.Scheme.AccentColor,
+                }):Play()
+            end
+        end)
+        CardCopyBtn.MouseLeave:Connect(function()
+            if CopyImg then
+                TweenService:Create(CopyImg, Library.TweenInfo, {
+                    ImageTransparency = 0.4,
+                    ImageColor3 = Library.Scheme.FontColor,
+                }):Play()
+            end
+        end)
+        CardCopyBtn.MouseButton1Click:Connect(function()
+            local CopyText = string.format("[%s] %s\n%s", Item.FormattedTime or "", Item.Title or "", Item.Description or "")
+            Library:CopyToClipboard(CopyText, Item.Title or "Notification", false)
+        end)
+
+        local TitleLabel = New("TextLabel", {
+            AutomaticSize = Enum.AutomaticSize.Y,
+            BackgroundTransparency = 1,
+            Size = UDim2.fromScale(1, 0),
+            Text = Item.Title or "Notification",
+            TextColor3 = Item.TitleColor or "FontColor",
+            TextSize = 14,
+            TextWrapped = true,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = BaseZIndex + 2,
+            Parent = Card,
+        })
+
+        if Item.Description and Item.Description ~= "" then
+            local DescLabel = New("TextLabel", {
+                AutomaticSize = Enum.AutomaticSize.Y,
+                BackgroundTransparency = 1,
+                Size = UDim2.fromScale(1, 0),
+                Text = Item.Description,
+                TextColor3 = Item.DescriptionColor or "FontColor",
+                TextTransparency = 0.2,
+                TextSize = 13,
+                TextWrapped = true,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                ZIndex = BaseZIndex + 2,
+                Parent = Card,
+            })
+        end
+
+        return Card
+    end
+
+    local function RefreshPopCards()
+        for _, Child in ipairs(NotifPopScroll:GetChildren()) do
+            if Child:IsA("GuiObject") and not Child:IsA("UIListLayout") and not Child:IsA("UIPadding") then
+                Child:Destroy()
+            end
+        end
+
+        if #Library.NotificationHistory == 0 then
+            local EmptyHolder = New("Frame", {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 120),
+                ZIndex = 32,
+                Parent = NotifPopScroll,
+            })
+            New("UIListLayout", {
+                FillDirection = Enum.FillDirection.Vertical,
+                HorizontalAlignment = Enum.HorizontalAlignment.Center,
+                VerticalAlignment = Enum.VerticalAlignment.Center,
+                Padding = UDim.new(0, 8),
+                Parent = EmptyHolder,
+            })
+            local EmptyIcon = New("ImageLabel", {
+                BackgroundTransparency = 1,
+                Size = UDim2.fromOffset(24, 24),
+                ImageColor3 = "FontColor",
+                ImageTransparency = 0.6,
+                ZIndex = 33,
+                Parent = EmptyHolder,
+            })
+            if BellIcon then
+                Library:ApplyLucideIcon(EmptyIcon, BellIcon)
+            end
+            New("TextLabel", {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 16),
+                Text = "No notification history",
+                TextColor3 = "FontColor",
+                TextTransparency = 0.6,
+                TextSize = 13,
+                ZIndex = 33,
+                Parent = EmptyHolder,
+            })
+            return
+        end
+
+        for _, Item in ipairs(Library.NotificationHistory) do
+            CreateNotificationCard(Item, NotifPopScroll, 32)
+        end
+    end
+
+    NotifHistoryButton.MouseButton1Click:Connect(function()
+        NotifHistoryPopover.Visible = not NotifHistoryPopover.Visible
+        if NotifHistoryPopover.Visible then
+            RefreshPopCards()
+        end
+    end)
+
+    PopClearBtn.MouseButton1Click:Connect(function()
+        table.clear(Library.NotificationHistory)
+        RefreshPopCards()
+        NotifBadge.Visible = false
+        if Library.RefreshTabNotifs then
+            Library.RefreshTabNotifs()
+        end
+        Library:Notify({
+            Title = "History Cleared",
+            Description = "Notification history has been cleared.",
+            Time = 2,
+            Icon = "trash-2",
+            SkipHistory = true,
+        })
+    end)
+
     local IsMinimized = false
     local PreMinimizeHeight = WindowInfo.Size.Y.Offset
 
@@ -11159,9 +11632,12 @@ function Library:CreateWindow(WindowInfo)
         IsMinimized = Minimized
 
         if IsMinimized then
-            PreMinimizeHeight = MainFrame.Size.Y.Offset
+            PreMinimizeHeight = MainFrame.AbsoluteSize.Y / Library.DPIScale
             if ResizeButton then
                 ResizeButton.Visible = false
+            end
+            if NotifHistoryPopover then
+                NotifHistoryPopover.Visible = false
             end
             Tabs.Visible = false
             Container.Visible = false
@@ -11174,19 +11650,24 @@ function Library:CreateWindow(WindowInfo)
                 Size = TargetSize,
             }):Play()
 
-            local MaxIcon = Library:GetCustomIcon("maximize-2") or Library:GetCustomIcon("chevron-down") or Library:GetCustomIcon("plus")
-            if MaxIcon and MinimizeIconImage then
-                Library:ApplyLucideIcon(MinimizeIconImage, MaxIcon)
+            if MinimizeBar then
+                MinimizeBar.Visible = false
+            end
+            if MinimizeIconImage then
+                MinimizeIconImage.Visible = true
             end
         else
-            local TargetSize = UDim2.new(MainFrame.Size.X.Scale, MainFrame.Size.X.Offset, 0, math.max(PreMinimizeHeight, Library.MinSize.Y))
+            local TargetHeight = math.max(PreMinimizeHeight or WindowInfo.Size.Y.Offset, Library.MinSize.Y)
+            local TargetSize = UDim2.new(MainFrame.Size.X.Scale, MainFrame.Size.X.Offset, 0, TargetHeight)
             TweenService:Create(MainFrame, Library.WindowAnimationInfo or Library.TweenInfo, {
                 Size = TargetSize,
             }):Play()
 
-            local MinIcon = Library:GetCustomIcon("minus") or Library:GetCustomIcon("chevron-up")
-            if MinIcon and MinimizeIconImage then
-                Library:ApplyLucideIcon(MinimizeIconImage, MinIcon)
+            if MinimizeBar then
+                MinimizeBar.Visible = true
+            end
+            if MinimizeIconImage then
+                MinimizeIconImage.Visible = false
             end
 
             task.delay((Library.WindowAnimationInfo or Library.TweenInfo).Time * 0.4, function()
@@ -11277,26 +11758,49 @@ function Library:CreateWindow(WindowInfo)
 
         local CountLabel = ControlsBox:AddLabel(string.format("Total Notifications: %d", #Library.NotificationHistory))
 
+        local HistoryListHolder = New("Frame", {
+            BackgroundTransparency = 1,
+            Size = UDim2.fromScale(1, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
+            Parent = LogBox.Container,
+        })
+        New("UIListLayout", {
+            Padding = UDim.new(0, 6),
+            Parent = HistoryListHolder,
+        })
+
+        local function RefreshTabCards()
+            for _, Child in ipairs(HistoryListHolder:GetChildren()) do
+                if Child:IsA("GuiObject") and not Child:IsA("UIListLayout") then
+                    Child:Destroy()
+                end
+            end
+
+            for _, Item in ipairs(Library.NotificationHistory) do
+                CreateNotificationCard(Item, HistoryListHolder, 2)
+            end
+            CountLabel:SetText(string.format("Total Notifications: %d", #Library.NotificationHistory))
+            LogBox:Resize()
+        end
+
+        Library.RefreshTabNotifs = RefreshTabCards
+
         ControlsBox:AddButton({
             Text = "Clear History",
-            DoubleClick = true,
-            Tooltip = "Double click to clear all notification history",
+            DoubleClick = false,
+            Tooltip = "Clear all notification history",
             Risky = true,
             Func = function()
                 table.clear(Library.NotificationHistory)
-                CountLabel:SetText("Total Notifications: 0")
-                for _, Element in ipairs(LogBox.Elements or {}) do
-                    if Element.Destroy then
-                        pcall(Element.Destroy, Element)
-                    end
-                end
-                table.clear(LogBox.Elements)
-                LogBox:Resize()
+                RefreshTabCards()
+                RefreshPopCards()
+                NotifBadge.Visible = false
                 Library:Notify({
                     Title = "History Cleared",
                     Description = "Notification history has been cleared.",
                     Time = 2,
                     Icon = "trash-2",
+                    SkipHistory = true,
                 })
             end,
         })
@@ -11311,6 +11815,7 @@ function Library:CreateWindow(WindowInfo)
                         Description = "No notifications to copy.",
                         Time = 2,
                         Icon = "info",
+                        SkipHistory = true,
                     })
                     return
                 end
@@ -11318,28 +11823,19 @@ function Library:CreateWindow(WindowInfo)
                 for _, Item in ipairs(Library.NotificationHistory) do
                     table.insert(LogLines, string.format("[%s] %s: %s", Item.FormattedTime or "", Item.Title or "", Item.Description or ""))
                 end
-                Library:CopyToClipboard(table.concat(LogLines, "\n"), "Notification History")
+                Library:CopyToClipboard(table.concat(LogLines, "\n"), "Notification History", false)
             end,
         })
 
-        local function AddHistoryEntry(Item)
-            CountLabel:SetText(string.format("Total Notifications: %d", #Library.NotificationHistory))
-            local LabelText = string.format("<b>[%s]</b> %s\n%s", Item.FormattedTime or os.date("%X"), Item.Title or "Notification", Item.Description or "")
-            LogBox:AddLabel({
-                Text = LabelText,
-                DoesWrap = true,
-            })
-            LogBox:AddDivider()
-            LogBox:Resize()
-        end
-
-        for i = #Library.NotificationHistory, 1, -1 do
-            AddHistoryEntry(Library.NotificationHistory[i])
-        end
+        RefreshTabCards()
 
         local Listener = function(NewItem)
             if NotifTab.Destroyed then return end
-            AddHistoryEntry(NewItem)
+            NotifBadge.Visible = true
+            RefreshTabCards()
+            if NotifHistoryPopover and NotifHistoryPopover.Visible then
+                RefreshPopCards()
+            end
         end
         table.insert(Library.NotificationListeners, Listener)
 
@@ -11347,8 +11843,9 @@ function Library:CreateWindow(WindowInfo)
     end
 
     function Window:ShowTabInfo(Name, Description)
-        CurrentTabLabel.Text = Name
-        CurrentTabDescription.Text = Description
+        CurrentTabLabel.Text = Name or ""
+        CurrentTabDescription.Text = Description or ""
+        CurrentTabDescription.Visible = (Description ~= nil and Description ~= "")
 
         if IsDefaultSearchbarSize then
             SearchBox.Size = UDim2.fromScale(0.5, 1)
@@ -12859,9 +13356,7 @@ function Library:CreateWindow(WindowInfo)
                 }):Play()
             end
 
-            if Description then
-                Window:ShowTabInfo(Name, Description)
-            end
+            Window:ShowTabInfo(Name, Description or "")
 
             Library:PlayTabAnimation(TabCanvas, true)
             Tab:RefreshSides()
