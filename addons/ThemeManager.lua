@@ -57,8 +57,12 @@ local ThemeManager = {
     ContrastWasPoor = false,
 
     BuiltInThemes = {
-        ["Default"] = {
+        ["NeonEdge"] = {
             1,
+            { FontColor = "edf6f9", MainColor = "2f0049", AccentColor = "48bfe3", BackgroundColor = "170025", OutlineColor = "5e60ce", BackgroundImage = "" },
+        },
+        ["Default"] = {
+            2,
             { FontColor = "ffffff", MainColor = "191919", AccentColor = "7d55ff", BackgroundColor = "0f0f0f", OutlineColor = "282828", BackgroundImage = "" },
         },
         ["BBot"] = {

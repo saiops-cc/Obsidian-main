@@ -66,16 +66,16 @@ local CustomImageManagerAssets = {
 
     AppIcon = {
         RobloxId = 95816097006870,
-        Path = "Obsidian/assets/sai.png",
-        URL = BaseURL .. "assets/sai.png",
+        Path = "Obsidian/assets/icon.png",
+        URL = BaseURL .. "assets/icon.png",
 
         Id = nil,
     },
 
-    ["sai.png"] = {
+    ["icon.png"] = {
         RobloxId = 95816097006870,
-        Path = "Obsidian/assets/sai.png",
-        URL = BaseURL .. "assets/sai.png",
+        Path = "Obsidian/assets/icon.png",
+        URL = BaseURL .. "assets/icon.png",
 
         Id = nil,
     },
@@ -1461,14 +1461,15 @@ function Library:GetCustomIcon(IconName: string): any
         IconName = string.format("rbxassetid://%s", tostring(IconName))
     end
 
-    if IconName == "sai" or IconName == "sai.png" or IconName == "icon.png" or IconName == "AppIcon" or (CustomImageManagerAssets and CustomImageManagerAssets[IconName]) then
-        local Lookup = (IconName == "sai" or IconName == "sai.png" or IconName == "icon.png") and "AppIcon" or IconName
+    if IconName == "icon" or IconName == "icon.png" or IconName == "AppIcon" or IconName == "sai" or IconName == "sai.png" or (CustomImageManagerAssets and CustomImageManagerAssets[IconName]) then
+        local Lookup = (IconName == "icon" or IconName == "icon.png" or IconName == "sai" or IconName == "sai.png") and "AppIcon" or IconName
         local AssetId = CustomImageManager.GetAsset(Lookup)
         if AssetId then
             return {
                 Url = AssetId,
                 ImageRectOffset = Vector2.zero,
                 ImageRectSize = Vector2.zero,
+                Custom = true,
             }
         end
     end
@@ -10927,6 +10928,9 @@ function Library:CreateWindow(WindowInfo)
         if WindowInfo.Icon then
             local Icon = Library:GetCustomIcon(WindowInfo.Icon)
             WindowIcon = New("ImageLabel", {
+                BackgroundTransparency = 1,
+                ImageColor3 = Color3.fromRGB(255, 255, 255),
+                ImageTransparency = 0,
                 Size = WindowInfo.IconSize,
                 Parent = TitleHolder,
             })
@@ -12718,8 +12722,10 @@ function Library:CreateWindow(WindowInfo)
 
     local FloatAppIconImg = New("ImageLabel", {
         BackgroundTransparency = 1,
+        ImageColor3 = Color3.fromRGB(255, 255, 255),
+        ImageTransparency = 0,
         Size = UDim2.fromOffset(26, 26),
-        Image = CustomImageManager.GetAsset("AppIcon") or (WindowInfo.Icon and (typeof(WindowInfo.Icon) == "number" and ("rbxassetid://" .. WindowInfo.Icon) or WindowInfo.Icon)) or "rbxassetid://95816097006870",
+        Image = (Library:GetCustomIcon("icon.png") and Library:GetCustomIcon("icon.png").Url) or CustomImageManager.GetAsset("AppIcon") or "rbxassetid://95816097006870",
         ZIndex = 27,
         Parent = FloatBrandCard,
     })

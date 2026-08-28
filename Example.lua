@@ -27,7 +27,7 @@ local Window = Library:CreateWindow({
 
 	Title = "Saiops Hub",
 	Footer = "version: example",
-	Icon = "sai.png",
+	Icon = "icon.png",
 	NotifySide = "Right",
 	ShowCustomCursor = true,
 	Minimizable = true,
