@@ -3251,9 +3251,17 @@ function Library:OpenDropdownModal(Dropdown)
         Parent = Modal,
     })
 
+    New("UIPadding", {
+        PaddingBottom = UDim.new(0, 4),
+        PaddingLeft = UDim.new(0, 2),
+        PaddingRight = UDim.new(0, 6),
+        PaddingTop = UDim.new(0, 2),
+        Parent = GridScroll,
+    })
+
     New("UIGridLayout", {
         CellPadding = UDim2.fromOffset(6, 6),
-        CellSize = UDim2.new(0.5, -3, 0, 26),
+        CellSize = UDim2.new(0.5, -7, 0, 26),
         HorizontalAlignment = Enum.HorizontalAlignment.Left,
         SortOrder = Enum.SortOrder.LayoutOrder,
         Parent = GridScroll,
@@ -3309,15 +3317,17 @@ function Library:OpenDropdownModal(Dropdown)
             ZIndex = 42,
             Parent = GridScroll,
         })
-        table.insert(
-            Library.Corners,
-            New("UICorner", {
-                CornerRadius = UDim.new(0, 4),
-                Parent = Card,
-            })
-        )
+        local CardCorner = New("UICorner", {
+            CornerRadius = UDim.new(0, 4),
+            Parent = Card,
+        })
+        table.insert(Library.SpecificCorners, CardCorner)
+
         local CardStroke = New("UIStroke", {
             Color = Selected and "AccentColor" or "OutlineColor",
+            Thickness = 1,
+            LineJoinMode = Enum.LineJoinMode.Round,
+            ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
             Parent = Card,
         })
 
