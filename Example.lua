@@ -25,9 +25,9 @@ local Window = Library:CreateWindow({
 	-- Position and Size are also valid options here
 	-- but you do not need to define them unless you are changing them :)
 
-	Title = "mspaint",
+	Title = "Saiops Hub",
 	Footer = "version: example",
-	Icon = 95816097006870,
+	Icon = "sai.png",
 	NotifySide = "Right",
 	ShowCustomCursor = true,
 	Minimizable = true,

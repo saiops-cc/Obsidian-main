@@ -66,8 +66,16 @@ local CustomImageManagerAssets = {
 
     AppIcon = {
         RobloxId = 95816097006870,
-        Path = "Obsidian/assets/icon.png",
-        URL = BaseURL .. "assets/icon.png",
+        Path = "Obsidian/assets/sai.png",
+        URL = BaseURL .. "assets/sai.png",
+
+        Id = nil,
+    },
+
+    ["sai.png"] = {
+        RobloxId = 95816097006870,
+        Path = "Obsidian/assets/sai.png",
+        URL = BaseURL .. "assets/sai.png",
 
         Id = nil,
     },
@@ -1451,6 +1459,18 @@ function Library:GetCustomIcon(IconName: string): any
 
     if tonumber(IconName) then
         IconName = string.format("rbxassetid://%s", tostring(IconName))
+    end
+
+    if IconName == "sai" or IconName == "sai.png" or IconName == "icon.png" or IconName == "AppIcon" or (CustomImageManagerAssets and CustomImageManagerAssets[IconName]) then
+        local Lookup = (IconName == "sai" or IconName == "sai.png" or IconName == "icon.png") and "AppIcon" or IconName
+        local AssetId = CustomImageManager.GetAsset(Lookup)
+        if AssetId then
+            return {
+                Url = AssetId,
+                ImageRectOffset = Vector2.zero,
+                ImageRectSize = Vector2.zero,
+            }
+        end
     end
 
     if IsCustomAssetIcon(IconName, true) then
@@ -15854,51 +15874,27 @@ function Library:CreateWindow(WindowInfo)
             end
         end
 
-        if typeof(Value) == "boolean" then
-            Library.Toggled = Value
-        else
-            Library.Toggled = not Library.Toggled
-        end
-
-        if Library.Animations and Library.Animations.ToggleWindow == true then
-            local FadeTime = Library.WindowAnimationInfo.Time
-            Fading = true
-
-            if Library.Toggled then
-                MainFrame.Visible = true
-            end
-
-            if Library.Toggled then
-                FadeInstance(MainFrame, { "BackgroundTransparency" })
-                task.wait(FadeTime / 2)
+        if WindowInfo.Minimizable ~= false then
+            local ShouldBeOpen
+            if typeof(Value) == "boolean" then
+                ShouldBeOpen = Value
             else
-                task.delay(FadeTime / 2, FadeInstance, MainFrame, { "BackgroundTransparency" })
+                ShouldBeOpen = IsMinimized or (not MainFrame.Visible)
             end
 
-            for _, Instance in MainFrame:GetDescendants() do
-                if Instance == TopBar then
-                    continue
-                end
-
-                if Instance:IsA("GuiObject") then
-                    local ClassName = Instance.ClassName
-                    if ClassName == "ImageLabel" or ClassName == "ImageButton" then
-                        FadeInstance(Instance, ImageProperties)
-                    elseif ClassName == "TextLabel" or ClassName == "TextBox" or ClassName == "TextButton" then
-                        FadeInstance(Instance, TextProperties)
-                    else
-                        FadeInstance(Instance, GuiProperties)
-                    end
-                elseif Instance.ClassName == "UIStroke" then
-                    FadeInstance(Instance, StrokeProperties)
-                end
+            if ShouldBeOpen then
+                SetMinimizedState(false)
+                Library.Toggled = true
+            else
+                SetMinimizedState(true)
+                Library.Toggled = false
             end
-
-            task.delay(FadeTime, function()
-                MainFrame.Visible = Library.Toggled
-                Fading = false
-            end)
         else
+            if typeof(Value) == "boolean" then
+                Library.Toggled = Value
+            else
+                Library.Toggled = not Library.Toggled
+            end
             MainFrame.Visible = Library.Toggled
         end
 
