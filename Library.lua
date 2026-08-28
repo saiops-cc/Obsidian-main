@@ -11604,28 +11604,34 @@ function Library:CreateWindow(WindowInfo)
         end
     end
 
-    NotifHistoryButton.MouseButton1Click:Connect(function()
-        NotifHistoryPopover.Visible = not NotifHistoryPopover.Visible
-        if NotifHistoryPopover.Visible then
-            RefreshPopCards()
-        end
-    end)
+    if NotifHistoryButton then
+        NotifHistoryButton.MouseButton1Click:Connect(function()
+            NotifHistoryPopover.Visible = not NotifHistoryPopover.Visible
+            if NotifHistoryPopover.Visible then
+                RefreshPopCards()
+            end
+        end)
+    end
 
-    PopClearBtn.MouseButton1Click:Connect(function()
-        table.clear(Library.NotificationHistory)
-        RefreshPopCards()
-        NotifBadge.Visible = false
-        if Library.RefreshTabNotifs then
-            Library.RefreshTabNotifs()
-        end
-        Library:Notify({
-            Title = "History Cleared",
-            Description = "Notification history has been cleared.",
-            Time = 2,
-            Icon = "trash-2",
-            SkipHistory = true,
-        })
-    end)
+    if PopClearBtn then
+        PopClearBtn.MouseButton1Click:Connect(function()
+            table.clear(Library.NotificationHistory)
+            RefreshPopCards()
+            if NotifBadge then
+                NotifBadge.Visible = false
+            end
+            if Library.RefreshTabNotifs then
+                Library.RefreshTabNotifs()
+            end
+            Library:Notify({
+                Title = "History Cleared",
+                Description = "Notification history has been cleared.",
+                Time = 2,
+                Icon = "trash-2",
+                SkipHistory = true,
+            })
+        end)
+    end
 
     local IsMinimized = false
     local PreMinimizeHeight = WindowInfo.Size.Y.Offset

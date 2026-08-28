@@ -3,9 +3,10 @@
 -- You can suggest changes with a pull request or something
 
 local repo = "https://raw.githubusercontent.com/saiops-cc/Obsidian-main/main/"
-local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
-local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
-local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+local cacheBuster = "?t=" .. tostring(os.time())
+local Library = loadstring(game:HttpGet(repo .. "Library.lua" .. cacheBuster))()
+local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua" .. cacheBuster))()
+local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua" .. cacheBuster))()
 
 local Options = Library.Options
 local Toggles = Library.Toggles
