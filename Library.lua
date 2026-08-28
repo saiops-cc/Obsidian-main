@@ -63,6 +63,14 @@ local CustomImageManagerAssets = {
 
         Id = nil,
     },
+
+    AppIcon = {
+        RobloxId = 95816097006870,
+        Path = "Obsidian/assets/icon.png",
+        URL = BaseURL .. "assets/icon.png",
+
+        Id = nil,
+    },
 }
 do
     local function RecursiveCreatePath(Path: string, IsFile: boolean?)
@@ -10288,6 +10296,8 @@ function Library:CreateWindow(WindowInfo)
     local MinimizeBar
     local MinimizeIconImage
     local FooterLinksContainer
+    local FloatingTabWidget
+    local FloatNotifBadge
     local WindowSnapConfig = {
         Enabled = WindowInfo.Snapping,
         Distance = WindowInfo.SnapDistance,
@@ -11277,8 +11287,8 @@ function Library:CreateWindow(WindowInfo)
         Position = UDim2.new(1, -8, 0, 48),
         Size = UDim2.fromOffset(300, 360),
         Visible = false,
-        ZIndex = 30,
-        Parent = MainFrame,
+        ZIndex = 35,
+        Parent = ScreenGui,
     })
     table.insert(
         Library.Corners,
@@ -11610,6 +11620,11 @@ function Library:CreateWindow(WindowInfo)
             NotifHistoryPopover.Visible = not NotifHistoryPopover.Visible
             if NotifHistoryPopover.Visible then
                 RefreshPopCards()
+                NotifHistoryPopover.AnchorPoint = Vector2.new(1, 0)
+                NotifHistoryPopover.Position = UDim2.fromOffset(
+                    MainFrame.AbsolutePosition.X + MainFrame.AbsoluteSize.X - 8,
+                    MainFrame.AbsolutePosition.Y + 48
+                )
             end
         end)
     end
@@ -11620,6 +11635,9 @@ function Library:CreateWindow(WindowInfo)
             RefreshPopCards()
             if NotifBadge then
                 NotifBadge.Visible = false
+            end
+            if FloatNotifBadge then
+                FloatNotifBadge.Visible = false
             end
             if Library.RefreshTabNotifs then
                 Library.RefreshTabNotifs()
@@ -11634,55 +11652,340 @@ function Library:CreateWindow(WindowInfo)
         end)
     end
 
+    --// Small Vertical Floating Tab (Minimized Widget) \\--
+    FloatingTabWidget = New("TextButton", {
+        Name = "ObsidianFloatingTab",
+        Text = "",
+        AnchorPoint = Vector2.new(0, 0),
+        BackgroundColor3 = function()
+            return Library:GetBetterColor(Library.Scheme.BackgroundColor, -1)
+        end,
+        Position = UDim2.new(0, 20, 0.5, -108),
+        Size = UDim2.fromOffset(56, 216),
+        Visible = false,
+        ZIndex = 25,
+        Parent = ScreenGui,
+    })
+    table.insert(
+        Library.Corners,
+        New("UICorner", {
+            CornerRadius = UDim.new(0, 16),
+            Parent = FloatingTabWidget,
+        })
+    )
+    table.insert(
+        Library.Scales,
+        New("UIScale", {
+            Parent = FloatingTabWidget,
+        })
+    )
+    Library:AddOutline(FloatingTabWidget)
+    Library:MakeDraggable(FloatingTabWidget, FloatingTabWidget, false, true, WindowSnapConfig)
+
+    New("UIPadding", {
+        PaddingBottom = UDim.new(0, 8),
+        PaddingLeft = UDim.new(0, 6),
+        PaddingRight = UDim.new(0, 6),
+        PaddingTop = UDim.new(0, 8),
+        Parent = FloatingTabWidget,
+    })
+
+    New("UIListLayout", {
+        FillDirection = Enum.FillDirection.Vertical,
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        VerticalAlignment = Enum.VerticalAlignment.Top,
+        Padding = UDim.new(0, 6),
+        Parent = FloatingTabWidget,
+    })
+
+    -- 1. App Icon Frame
+    local FloatAppIconFrame = New("Frame", {
+        BackgroundColor3 = "MainColor",
+        Size = UDim2.fromOffset(36, 36),
+        ZIndex = 26,
+        Parent = FloatingTabWidget,
+    })
+    table.insert(
+        Library.Corners,
+        New("UICorner", {
+            CornerRadius = UDim.new(0, 10),
+            Parent = FloatAppIconFrame,
+        })
+    )
+    Library:AddOutline(FloatAppIconFrame)
+    Library:AddTooltip("SAIOPS HUB", "", FloatAppIconFrame)
+
+    local FloatAppIconImg = New("ImageLabel", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundTransparency = 1,
+        Position = UDim2.fromScale(0.5, 0.5),
+        Size = UDim2.fromOffset(26, 26),
+        Image = CustomImageManager.GetAsset("AppIcon") or (WindowInfo.Icon and (typeof(WindowInfo.Icon) == "number" and ("rbxassetid://" .. WindowInfo.Icon) or WindowInfo.Icon)) or "rbxassetid://95816097006870",
+        ZIndex = 27,
+        Parent = FloatAppIconFrame,
+    })
+
+    -- 2. Player Headshot Frame
+    local FloatAvatarFrame = New("Frame", {
+        BackgroundColor3 = "MainColor",
+        Size = UDim2.fromOffset(36, 36),
+        ZIndex = 26,
+        Parent = FloatingTabWidget,
+    })
+    table.insert(
+        Library.Corners,
+        New("UICorner", {
+            CornerRadius = UDim.new(1, 0),
+            Parent = FloatAvatarFrame,
+        })
+    )
+    New("UIStroke", {
+        Color = "AccentColor",
+        Thickness = 1.5,
+        Parent = FloatAvatarFrame,
+    })
+    Library:AddTooltip(LocalPlayer.DisplayName .. " (@" .. LocalPlayer.Name .. ")", "", FloatAvatarFrame)
+
+    local FloatAvatarImg = New("ImageLabel", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundTransparency = 1,
+        Position = UDim2.fromScale(0.5, 0.5),
+        Size = UDim2.fromScale(1, 1),
+        Image = string.format("rbxthumb://type=AvatarHeadShot&id=%d&w=150&h=150", LocalPlayer.UserId),
+        ZIndex = 27,
+        Parent = FloatAvatarFrame,
+    })
+    table.insert(
+        Library.Corners,
+        New("UICorner", {
+            CornerRadius = UDim.new(1, 0),
+            Parent = FloatAvatarImg,
+        })
+    )
+    task.spawn(function()
+        pcall(function()
+            local Thumb, IsReady = Players:GetUserThumbnailAsync(
+                LocalPlayer.UserId,
+                Enum.ThumbnailType.HeadShot,
+                Enum.ThumbnailSize.Size150x150
+            )
+            if Thumb and Thumb ~= "" then
+                FloatAvatarImg.Image = Thumb
+            end
+        end)
+    end)
+
+    -- 3. SAIOPS HUB Brand Text
+    local FloatBrandText = New("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 22),
+        Text = "SAIOPS\nHUB",
+        TextColor3 = "AccentColor",
+        TextSize = 9,
+        Font = Enum.Font.GothamBold,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        ZIndex = 26,
+        Parent = FloatingTabWidget,
+    })
+
+    -- 4. Separator Line
+    Library:MakeLine(FloatingTabWidget, {
+        Size = UDim2.new(0, 36, 0, 1),
+        ZIndex = 26,
+    })
+
+    -- 5. Restore / Reopen Button
+    local FloatReopenBtn = New("TextButton", {
+        BackgroundColor3 = "MainColor",
+        BackgroundTransparency = 1,
+        Size = UDim2.fromOffset(32, 32),
+        Text = "",
+        ZIndex = 26,
+        Parent = FloatingTabWidget,
+    })
+    table.insert(
+        Library.Corners,
+        New("UICorner", {
+            CornerRadius = UDim.new(0, 8),
+            Parent = FloatReopenBtn,
+        })
+    )
+    Library:AddTooltip("Restore Window", "", FloatReopenBtn)
+
+    local ReopenIcon = Library:GetCustomIcon("maximize-2") or Library:GetCustomIcon("external-link")
+    local ReopenIconImg
+    if ReopenIcon then
+        ReopenIconImg = New("ImageLabel", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            BackgroundTransparency = 1,
+            Position = UDim2.fromScale(0.5, 0.5),
+            Size = UDim2.fromOffset(16, 16),
+            ImageColor3 = "FontColor",
+            ImageTransparency = 0.4,
+            ZIndex = 27,
+            Parent = FloatReopenBtn,
+        })
+        Library:ApplyLucideIcon(ReopenIconImg, ReopenIcon)
+    end
+
+    FloatReopenBtn.MouseEnter:Connect(function()
+        TweenService:Create(FloatReopenBtn, Library.TweenInfo, {
+            BackgroundTransparency = 0.85,
+        }):Play()
+        if ReopenIconImg then
+            TweenService:Create(ReopenIconImg, Library.TweenInfo, {
+                ImageTransparency = 0,
+                ImageColor3 = Library.Scheme.AccentColor,
+            }):Play()
+        end
+    end)
+    FloatReopenBtn.MouseLeave:Connect(function()
+        TweenService:Create(FloatReopenBtn, Library.TweenInfo, {
+            BackgroundTransparency = 1,
+        }):Play()
+        if ReopenIconImg then
+            TweenService:Create(ReopenIconImg, Library.TweenInfo, {
+                ImageTransparency = 0.4,
+                ImageColor3 = Library.Scheme.FontColor,
+            }):Play()
+        end
+    end)
+    FloatReopenBtn.MouseButton1Click:Connect(function()
+        SetMinimizedState(false)
+    end)
+
+    -- 6. Notification History Button
+    local FloatNotifBtn = New("TextButton", {
+        BackgroundColor3 = "MainColor",
+        BackgroundTransparency = 1,
+        Size = UDim2.fromOffset(32, 32),
+        Text = "",
+        ZIndex = 26,
+        Parent = FloatingTabWidget,
+    })
+    table.insert(
+        Library.Corners,
+        New("UICorner", {
+            CornerRadius = UDim.new(0, 8),
+            Parent = FloatNotifBtn,
+        })
+    )
+    Library:AddTooltip("Notification History", "", FloatNotifBtn)
+
+    local FloatBellIcon = Library:GetCustomIcon("bell")
+    local FloatBellImg
+    if FloatBellIcon then
+        FloatBellImg = New("ImageLabel", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            BackgroundTransparency = 1,
+            Position = UDim2.fromScale(0.5, 0.5),
+            Size = UDim2.fromOffset(16, 16),
+            ImageColor3 = "FontColor",
+            ImageTransparency = 0.4,
+            ZIndex = 27,
+            Parent = FloatNotifBtn,
+        })
+        Library:ApplyLucideIcon(FloatBellImg, FloatBellIcon)
+    end
+
+    FloatNotifBadge = New("Frame", {
+        AnchorPoint = Vector2.new(1, 0),
+        BackgroundColor3 = "AccentColor",
+        Position = UDim2.new(1, -2, 0, 2),
+        Size = UDim2.fromOffset(6, 6),
+        Visible = (#Library.NotificationHistory > 0),
+        ZIndex = 28,
+        Parent = FloatNotifBtn,
+    })
+    table.insert(
+        Library.Corners,
+        New("UICorner", {
+            CornerRadius = UDim.new(1, 0),
+            Parent = FloatNotifBadge,
+        })
+    )
+
+    FloatNotifBtn.MouseEnter:Connect(function()
+        TweenService:Create(FloatNotifBtn, Library.TweenInfo, {
+            BackgroundTransparency = 0.85,
+        }):Play()
+        if FloatBellImg then
+            TweenService:Create(FloatBellImg, Library.TweenInfo, {
+                ImageTransparency = 0,
+                ImageColor3 = Library.Scheme.AccentColor,
+            }):Play()
+        end
+    end)
+    FloatNotifBtn.MouseLeave:Connect(function()
+        TweenService:Create(FloatNotifBtn, Library.TweenInfo, {
+            BackgroundTransparency = 1,
+        }):Play()
+        if FloatBellImg then
+            TweenService:Create(FloatBellImg, Library.TweenInfo, {
+                ImageTransparency = 0.4,
+                ImageColor3 = Library.Scheme.FontColor,
+            }):Play()
+        end
+    end)
+    FloatNotifBtn.MouseButton1Click:Connect(function()
+        NotifHistoryPopover.Visible = not NotifHistoryPopover.Visible
+        if NotifHistoryPopover.Visible then
+            RefreshPopCards()
+            NotifHistoryPopover.AnchorPoint = Vector2.new(0, 0)
+            local Cam = workspace.CurrentCamera
+            local VpY = Cam and Cam.ViewportSize.Y or 800
+            NotifHistoryPopover.Position = UDim2.fromOffset(
+                FloatingTabWidget.AbsolutePosition.X + FloatingTabWidget.AbsoluteSize.X + 10,
+                math.clamp(FloatingTabWidget.AbsolutePosition.Y, 10, VpY - 370)
+            )
+        end
+    end)
+
     local IsMinimized = false
-    local PreMinimizeHeight = WindowInfo.Size.Y.Offset
 
     local function SetMinimizedState(Minimized: boolean)
         if IsMinimized == Minimized then return end
         IsMinimized = Minimized
 
         if IsMinimized then
-            PreMinimizeHeight = MainFrame.AbsoluteSize.Y / Library.DPIScale
             if ResizeButton then ResizeButton.Visible = false end
             if NotifHistoryPopover then NotifHistoryPopover.Visible = false end
-            if Tabs then Tabs.Visible = false end
-            if Container then Container.Visible = false end
-            if DividerLine then DividerLine.Visible = false end
-            if BottomBackground then BottomBackground.Visible = false end
-            if BottomBar then BottomBar.Visible = false end
 
-            local TargetSize = UDim2.new(MainFrame.Size.X.Scale, MainFrame.Size.X.Offset, 0, 48)
-            TweenService:Create(MainFrame, Library.WindowAnimationInfo or Library.TweenInfo, {
-                Size = TargetSize,
-            }):Play()
+            MainFrame.Visible = false
 
-            if MinimizeBar then MinimizeBar.Visible = false end
-            if MinimizeIconImage then MinimizeIconImage.Visible = true end
+            local Cam = workspace.CurrentCamera
+            local VpX = Cam and Cam.ViewportSize.X or 1000
+            local VpY = Cam and Cam.ViewportSize.Y or 800
+
+            FloatingTabWidget.Position = UDim2.fromOffset(
+                math.clamp(MainFrame.AbsolutePosition.X, 10, VpX - 70),
+                math.clamp(MainFrame.AbsolutePosition.Y, 10, VpY - 230)
+            )
+            FloatingTabWidget.Visible = true
+
+            if FloatNotifBadge then
+                FloatNotifBadge.Visible = (#Library.NotificationHistory > 0)
+            end
         else
-            local TargetHeight = math.max(PreMinimizeHeight or WindowInfo.Size.Y.Offset, Library.MinSize.Y)
-            local TargetSize = UDim2.new(MainFrame.Size.X.Scale, MainFrame.Size.X.Offset, 0, TargetHeight)
-            TweenService:Create(MainFrame, Library.WindowAnimationInfo or Library.TweenInfo, {
-                Size = TargetSize,
-            }):Play()
+            FloatingTabWidget.Visible = false
+            if NotifHistoryPopover then
+                NotifHistoryPopover.Visible = false
+            end
 
-            if MinimizeBar then MinimizeBar.Visible = true end
-            if MinimizeIconImage then MinimizeIconImage.Visible = false end
-
-            task.delay((Library.WindowAnimationInfo or Library.TweenInfo).Time * 0.4, function()
-                if not IsMinimized then
-                    if Tabs then Tabs.Visible = true end
-                    if Container then Container.Visible = true end
-                    if DividerLine then DividerLine.Visible = true end
-                    if BottomBackground then BottomBackground.Visible = true end
-                    if BottomBar then BottomBar.Visible = true end
-                    if ResizeButton and WindowInfo.Resizable then
-                        ResizeButton.Visible = true
-                    end
-                    if Library.ActiveTab then
-                        Library.ActiveTab:Resize(true)
-                    end
-                end
-            end)
+            MainFrame.Visible = true
+            if Tabs then Tabs.Visible = true end
+            if Container then Container.Visible = true end
+            if DividerLine then DividerLine.Visible = true end
+            if BottomBackground then BottomBackground.Visible = true end
+            if BottomBar then BottomBar.Visible = true end
+            if ResizeButton and WindowInfo.Resizable then
+                ResizeButton.Visible = true
+            end
+            if Library.ActiveTab then
+                Library.ActiveTab:Resize(true)
+            end
         end
     end
 
@@ -11792,7 +12095,12 @@ function Library:CreateWindow(WindowInfo)
                 table.clear(Library.NotificationHistory)
                 RefreshTabCards()
                 RefreshPopCards()
-                NotifBadge.Visible = false
+                if NotifBadge then
+                    NotifBadge.Visible = false
+                end
+                if FloatNotifBadge then
+                    FloatNotifBadge.Visible = false
+                end
                 Library:Notify({
                     Title = "History Cleared",
                     Description = "Notification history has been cleared.",
@@ -11829,7 +12137,12 @@ function Library:CreateWindow(WindowInfo)
 
         local Listener = function(NewItem)
             if NotifTab.Destroyed then return end
-            NotifBadge.Visible = true
+            if NotifBadge then
+                NotifBadge.Visible = true
+            end
+            if FloatNotifBadge then
+                FloatNotifBadge.Visible = true
+            end
             RefreshTabCards()
             if NotifHistoryPopover and NotifHistoryPopover.Visible then
                 RefreshPopCards()
