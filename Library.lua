@@ -10279,6 +10279,7 @@ function Library:CreateWindow(WindowInfo)
     local BackgroundImage
     local HasBackgroundImage = false
     local BottomBackground
+    local BottomBar
     local FooterLabel
     local TopBar
     local NotifHistoryButton
@@ -10782,7 +10783,7 @@ function Library:CreateWindow(WindowInfo)
             Size = UDim2.new(1, 0, 0, 1),
         })
 
-        local BottomBar = New("Frame", {
+        BottomBar = New("Frame", {
             AnchorPoint = Vector2.new(0, 1),
             BackgroundTransparency = 1,
             Position = UDim2.fromScale(0, 1),
@@ -11642,29 +11643,21 @@ function Library:CreateWindow(WindowInfo)
 
         if IsMinimized then
             PreMinimizeHeight = MainFrame.AbsoluteSize.Y / Library.DPIScale
-            if ResizeButton then
-                ResizeButton.Visible = false
-            end
-            if NotifHistoryPopover then
-                NotifHistoryPopover.Visible = false
-            end
-            Tabs.Visible = false
-            Container.Visible = false
-            DividerLine.Visible = false
-            BottomBackground.Visible = false
-            BottomBar.Visible = false
+            if ResizeButton then ResizeButton.Visible = false end
+            if NotifHistoryPopover then NotifHistoryPopover.Visible = false end
+            if Tabs then Tabs.Visible = false end
+            if Container then Container.Visible = false end
+            if DividerLine then DividerLine.Visible = false end
+            if BottomBackground then BottomBackground.Visible = false end
+            if BottomBar then BottomBar.Visible = false end
 
             local TargetSize = UDim2.new(MainFrame.Size.X.Scale, MainFrame.Size.X.Offset, 0, 48)
             TweenService:Create(MainFrame, Library.WindowAnimationInfo or Library.TweenInfo, {
                 Size = TargetSize,
             }):Play()
 
-            if MinimizeBar then
-                MinimizeBar.Visible = false
-            end
-            if MinimizeIconImage then
-                MinimizeIconImage.Visible = true
-            end
+            if MinimizeBar then MinimizeBar.Visible = false end
+            if MinimizeIconImage then MinimizeIconImage.Visible = true end
         else
             local TargetHeight = math.max(PreMinimizeHeight or WindowInfo.Size.Y.Offset, Library.MinSize.Y)
             local TargetSize = UDim2.new(MainFrame.Size.X.Scale, MainFrame.Size.X.Offset, 0, TargetHeight)
@@ -11672,20 +11665,16 @@ function Library:CreateWindow(WindowInfo)
                 Size = TargetSize,
             }):Play()
 
-            if MinimizeBar then
-                MinimizeBar.Visible = true
-            end
-            if MinimizeIconImage then
-                MinimizeIconImage.Visible = false
-            end
+            if MinimizeBar then MinimizeBar.Visible = true end
+            if MinimizeIconImage then MinimizeIconImage.Visible = false end
 
             task.delay((Library.WindowAnimationInfo or Library.TweenInfo).Time * 0.4, function()
                 if not IsMinimized then
-                    Tabs.Visible = true
-                    Container.Visible = true
-                    DividerLine.Visible = true
-                    BottomBackground.Visible = true
-                    BottomBar.Visible = true
+                    if Tabs then Tabs.Visible = true end
+                    if Container then Container.Visible = true end
+                    if DividerLine then DividerLine.Visible = true end
+                    if BottomBackground then BottomBackground.Visible = true end
+                    if BottomBar then BottomBar.Visible = true end
                     if ResizeButton and WindowInfo.Resizable then
                         ResizeButton.Visible = true
                     end
