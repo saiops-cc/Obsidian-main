@@ -12120,6 +12120,8 @@ function Library:CreateWindow(WindowInfo)
         --// Deprecated - Use Tab:AddTabbox instead.
         function Tab:AddLeftTabbox(Name)
             return Tab:AddTabbox({ Side = 1, Name = Name })
+        end
+
         --// Deprecated - Use Tab:AddTabbox instead.
         function Tab:AddRightTabbox(Name)
             return Tab:AddTabbox({ Side = 2, Name = Name })
