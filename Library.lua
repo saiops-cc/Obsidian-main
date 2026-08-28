@@ -13144,10 +13144,7 @@ function Library:CreateWindow(WindowInfo)
         end
     end)
 
-    local IsMinimized = false
-
     SetMinimizedState = function(Minimized: boolean)
-        if IsMinimized == Minimized then return end
         IsMinimized = Minimized
 
         if IsMinimized then
@@ -16110,6 +16107,10 @@ function Library:CreateWindow(WindowInfo)
 
     Window.MainFrame = MainFrame
     Library.Window = Window
+
+    if WindowInfo.AutoShow ~= false and not Library.ActiveLoading then
+        Window:Toggle(true)
+    end
 
     return Window
 end
