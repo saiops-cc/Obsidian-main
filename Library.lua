@@ -315,6 +315,24 @@ local Library = {
     Notify = nil, Toggle = nil -- we love luau lsp
 }
 
+function Library:GetActiveFeatures()
+    local Active = {}
+    for Idx, Toggle in pairs(Library.Toggles) do
+        if Toggle and Toggle.Value == true and not Toggle.Destroyed then
+            table.insert(Active, {
+                Idx = Idx,
+                Toggle = Toggle,
+                Text = Toggle.Text or tostring(Idx),
+                Default = Toggle.Default,
+            })
+        end
+    end
+    table.sort(Active, function(a, b)
+        return (a.Text or "") < (b.Text or "")
+    end)
+    return Active
+end
+
 if RunService:IsStudio() then
     if UserInputService.TouchEnabled and not UserInputService.MouseEnabled then
         Library.IsMobile = true
@@ -2991,6 +3009,310 @@ function Library:AddDraggableLabel(...)
     end
 
     return DraggableLabel
+end
+
+function Library:OpenDropdownModal(Dropdown)
+    if not ScreenGui or not ScreenGui.Parent or not Dropdown then return end
+
+    if Library.DropdownModalInstance then
+        Library.DropdownModalInstance:Destroy()
+        Library.DropdownModalInstance = nil
+    end
+
+    local Modal = New("Frame", {
+        Name = "DropdownExpandModal",
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = function()
+            return Library:GetBetterColor(Library.Scheme.BackgroundColor, -1)
+        end,
+        Position = UDim2.fromScale(0.5, 0.5),
+        Size = UDim2.fromOffset(480, 420),
+        ZIndex = 40,
+        Parent = ScreenGui,
+    })
+    table.insert(
+        Library.Corners,
+        New("UICorner", {
+            CornerRadius = UDim.new(0, 10),
+            Parent = Modal,
+        })
+    )
+    table.insert(
+        Library.Scales,
+        New("UIScale", {
+            Parent = Modal,
+        })
+    )
+    Library:AddOutline(Modal)
+    Library:MakeDraggable(Modal, Modal, false, true, { Enabled = true, Distance = 28, Margin = 8 })
+
+    Library.DropdownModalInstance = Modal
+
+    -- 1. Top Header Frame
+    local HeaderFrame = New("Frame", {
+        BackgroundTransparency = 1,
+        Position = UDim2.fromOffset(0, 0),
+        Size = UDim2.new(1, 0, 0, 40),
+        ZIndex = 41,
+        Parent = Modal,
+    })
+    New("UIPadding", {
+        PaddingLeft = UDim.new(0, 14),
+        PaddingRight = UDim.new(0, 14),
+        Parent = HeaderFrame,
+    })
+
+    local TitleLabel = New("TextLabel", {
+        AnchorPoint = Vector2.new(0, 0.5),
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0.5, 0),
+        Size = UDim2.new(1, -30, 1, 0),
+        Text = Dropdown.Text or "A searchable dropdown",
+        TextColor3 = "FontColor",
+        TextSize = 14,
+        Font = Enum.Font.Code,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 42,
+        Parent = HeaderFrame,
+    })
+
+    local CloseBtn = New("TextButton", {
+        AnchorPoint = Vector2.new(1, 0.5),
+        BackgroundColor3 = "MainColor",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(1, 0, 0.5, 0),
+        Size = UDim2.fromOffset(22, 22),
+        Text = "",
+        ZIndex = 42,
+        Parent = HeaderFrame,
+    })
+    table.insert(
+        Library.Corners,
+        New("UICorner", {
+            CornerRadius = UDim.new(0, 6),
+            Parent = CloseBtn,
+        })
+    )
+
+    local CloseIcon = Library:GetCustomIcon("x")
+    local CloseIconImg
+    if CloseIcon then
+        CloseIconImg = New("ImageLabel", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            BackgroundTransparency = 1,
+            Position = UDim2.fromScale(0.5, 0.5),
+            Size = UDim2.fromOffset(14, 14),
+            ImageColor3 = "FontColor",
+            ImageTransparency = 0.4,
+            ZIndex = 43,
+            Parent = CloseBtn,
+        })
+        Library:ApplyLucideIcon(CloseIconImg, CloseIcon)
+    end
+
+    CloseBtn.MouseEnter:Connect(function()
+        TweenService:Create(CloseBtn, Library.TweenInfo, { BackgroundTransparency = 0.8 }):Play()
+        if CloseIconImg then
+            TweenService:Create(CloseIconImg, Library.TweenInfo, { ImageTransparency = 0, ImageColor3 = Library.Scheme.RedColor }):Play()
+        end
+    end)
+    CloseBtn.MouseLeave:Connect(function()
+        TweenService:Create(CloseBtn, Library.TweenInfo, { BackgroundTransparency = 1 }):Play()
+        if CloseIconImg then
+            TweenService:Create(CloseIconImg, Library.TweenInfo, { ImageTransparency = 0.4, ImageColor3 = Library.Scheme.FontColor }):Play()
+        end
+    end)
+    CloseBtn.MouseButton1Click:Connect(function()
+        Modal:Destroy()
+        Library.DropdownModalInstance = nil
+    end)
+
+    -- 2. Search Bar
+    local SearchContainer = New("Frame", {
+        BackgroundColor3 = "MainColor",
+        Position = UDim2.fromOffset(14, 44),
+        Size = UDim2.new(1, -28, 0, 32),
+        ZIndex = 41,
+        Parent = Modal,
+    })
+    table.insert(
+        Library.Corners,
+        New("UICorner", {
+            CornerRadius = UDim.new(0, 8),
+            Parent = SearchContainer,
+        })
+    )
+    local SearchStroke = New("UIStroke", {
+        Color = "OutlineColor",
+        Parent = SearchContainer,
+    })
+
+    local SearchIcon = Library:GetCustomIcon("search")
+    if SearchIcon then
+        local SearchIconImg = New("ImageLabel", {
+            AnchorPoint = Vector2.new(0, 0.5),
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 8, 0.5, 0),
+            Size = UDim2.fromOffset(16, 16),
+            ImageColor3 = "FontColor",
+            ImageTransparency = 0.5,
+            ZIndex = 42,
+            Parent = SearchContainer,
+        })
+        Library:ApplyLucideIcon(SearchIconImg, SearchIcon)
+    end
+
+    local SearchTextBox = New("TextBox", {
+        BackgroundTransparency = 1,
+        ClearTextOnFocus = false,
+        PlaceholderText = "Search...",
+        Position = UDim2.fromOffset(30, 0),
+        Size = UDim2.new(1, -38, 1, 0),
+        Text = "",
+        TextColor3 = "FontColor",
+        TextSize = 13,
+        Font = Enum.Font.Code,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 42,
+        Parent = SearchContainer,
+    })
+
+    SearchTextBox.Focused:Connect(function()
+        TweenService:Create(SearchStroke, Library.TweenInfo, { Color = Library.Scheme.AccentColor }):Play()
+    end)
+    SearchTextBox.FocusLost:Connect(function()
+        TweenService:Create(SearchStroke, Library.TweenInfo, { Color = Library.Scheme.OutlineColor }):Play()
+    end)
+
+    -- 3. Grid Options ScrollingFrame
+    local GridScroll = New("ScrollingFrame", {
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        AutomaticCanvasSize = Enum.AutomaticSize.Y,
+        ScrollBarThickness = 3,
+        ScrollBarImageColor3 = "OutlineColor",
+        Position = UDim2.fromOffset(14, 84),
+        Size = UDim2.new(1, -28, 1, -94),
+        ZIndex = 41,
+        Parent = Modal,
+    })
+
+    New("UIGridLayout", {
+        CellPadding = UDim2.fromOffset(8, 8),
+        CellSize = UDim2.new(0.5, -4, 0, 36),
+        HorizontalAlignment = Enum.HorizontalAlignment.Left,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = GridScroll,
+    })
+
+    local Cards = {}
+
+    local function IsOptionSelected(Value)
+        if Dropdown.Multi then
+            return Dropdown.Value and Dropdown.Value[Value] == true
+        else
+            return Dropdown.Value == Value
+        end
+    end
+
+    local function UpdateCardsVisual()
+        for _, Item in ipairs(Cards) do
+            local Selected = IsOptionSelected(Item.Value)
+            TweenService:Create(Item.Card, Library.TweenInfo, {
+                BackgroundColor3 = Selected and Library.Scheme.AccentColor or Library.Scheme.MainColor,
+                BackgroundTransparency = Selected and 0.8 or 0,
+            }):Play()
+            TweenService:Create(Item.Stroke, Library.TweenInfo, {
+                Color = Selected and Library.Scheme.AccentColor or Library.Scheme.OutlineColor,
+            }):Play()
+            Item.Label.TextColor3 = Selected and Library.Scheme.AccentColor or Library.Scheme.FontColor
+        end
+    end
+
+    local Values = Dropdown.Values
+    local IsDictionary = not IsSequentialArray(Values)
+
+    for Key, RawValue in pairs(Values) do
+        local Value = IsDictionary and Key or RawValue
+        local DisplayText = tostring(RawValue)
+
+        local Card = New("TextButton", {
+            BackgroundColor3 = IsOptionSelected(Value) and "AccentColor" or "MainColor",
+            BackgroundTransparency = IsOptionSelected(Value) and 0.8 or 0,
+            Size = UDim2.fromOffset(0, 0),
+            Text = "",
+            ZIndex = 42,
+            Parent = GridScroll,
+        })
+        table.insert(
+            Library.Corners,
+            New("UICorner", {
+                CornerRadius = UDim.new(0, 6),
+                Parent = Card,
+            })
+        )
+        local CardStroke = New("UIStroke", {
+            Color = IsOptionSelected(Value) and "AccentColor" or "OutlineColor",
+            Parent = Card,
+        })
+
+        local CardLabel = New("TextLabel", {
+            AnchorPoint = Vector2.new(0, 0.5),
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 10, 0.5, 0),
+            Size = UDim2.new(1, -20, 1, 0),
+            Text = DisplayText,
+            TextColor3 = IsOptionSelected(Value) and "AccentColor" or "FontColor",
+            TextSize = 13,
+            Font = Enum.Font.Code,
+            TextTruncate = Enum.TextTruncate.AtEnd,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 43,
+            Parent = Card,
+        })
+
+        Card.MouseEnter:Connect(function()
+            if not IsOptionSelected(Value) then
+                TweenService:Create(CardStroke, Library.TweenInfo, { Color = Library.Scheme.AccentColor }):Play()
+            end
+        end)
+        Card.MouseLeave:Connect(function()
+            if not IsOptionSelected(Value) then
+                TweenService:Create(CardStroke, Library.TweenInfo, { Color = Library.Scheme.OutlineColor }):Play()
+            end
+        end)
+
+        Card.MouseButton1Click:Connect(function()
+            if Dropdown.Multi then
+                local CurrVal = Dropdown.Value or {}
+                CurrVal[Value] = not CurrVal[Value]
+                Dropdown:SetValue(CurrVal)
+            else
+                Dropdown:SetValue(Value)
+            end
+            UpdateCardsVisual()
+        end)
+
+        table.insert(Cards, {
+            Card = Card,
+            Stroke = CardStroke,
+            Label = CardLabel,
+            Value = Value,
+            Text = DisplayText:lower(),
+        })
+    end
+
+    SearchTextBox:GetPropertyChangedSignal("Text"):Connect(function()
+        local Query = SearchTextBox.Text:lower():match("^%s*(.-)%s*$")
+        for _, Item in ipairs(Cards) do
+            if Query == "" or Item.Text:find(Query, 1, true) then
+                Item.Card.Visible = true
+            else
+                Item.Card.Visible = false
+            end
+        end
+    end)
 end
 
 function Library:AddDraggableButton(...)
@@ -6892,6 +7214,9 @@ do
             end
 
             Library:UpdateDependencyBoxes()
+            if Library.UpdateActiveFeaturesCount then
+                Library:UpdateActiveFeaturesCount()
+            end
 
             if not Toggle.AnyKeyPickerPicking then
                 Toggle:RunChanged()
@@ -6992,6 +7317,9 @@ do
 
             Groupbox:Resize()
             Toggles[Idx] = nil
+            if Library.UpdateActiveFeaturesCount then
+                Library:UpdateActiveFeaturesCount()
+            end
         end
 
         return Toggle
@@ -7805,13 +8133,40 @@ do
             AnchorPoint = Vector2.new(1, 0.5),
             ImageColor3 = "FontColor",
             ImageTransparency = 0.5,
-            Position = UDim2.fromScale(1, 0.5),
+            Position = UDim2.new(1, -20, 0.5, 0),
             Size = UDim2.fromOffset(16, 16),
             Parent = DisplayContainer,
         })
         if ArrowIcon then
             Library:ApplyLucideIcon(ArrowImage, ArrowIcon)
         end
+
+        local ExpandButton = New("ImageButton", {
+            AnchorPoint = Vector2.new(1, 0.5),
+            BackgroundTransparency = 1,
+            Position = UDim2.fromScale(1, 0.5),
+            Size = UDim2.fromOffset(16, 16),
+            ImageColor3 = "FontColor",
+            ImageTransparency = 0.5,
+            ZIndex = 4,
+            Parent = DisplayContainer,
+        })
+        local ExpandIcon = Library:GetCustomIcon("maximize-2") or Library:GetCustomIcon("expand")
+        if ExpandIcon then
+            Library:ApplyLucideIcon(ExpandButton, ExpandIcon)
+        end
+        Library:AddTooltip("Expand options grid", "", ExpandButton)
+
+        ExpandButton.MouseEnter:Connect(function()
+            TweenService:Create(ExpandButton, Library.TweenInfo, { ImageTransparency = 0, ImageColor3 = Library.Scheme.AccentColor }):Play()
+        end)
+        ExpandButton.MouseLeave:Connect(function()
+            TweenService:Create(ExpandButton, Library.TweenInfo, { ImageTransparency = 0.5, ImageColor3 = Library.Scheme.FontColor }):Play()
+        end)
+        ExpandButton.MouseButton1Click:Connect(function()
+            if Dropdown.Disabled then return end
+            Library:OpenDropdownModal(Dropdown)
+        end)
 
         local SearchBox
         if Info.Searchable then
@@ -10298,6 +10653,13 @@ function Library:CreateWindow(WindowInfo)
     local FooterLinksContainer
     local FloatingTabWidget
     local FloatNotifBadge
+    local ActiveFeaturesButton
+    local ActiveFeaturesBadge
+    local ActiveFeaturesBadgeLabel
+    local ActiveFeaturesPopover
+    local FloatActiveBtn
+    local FloatActiveBadge
+    local FloatActiveBadgeLabel
     local WindowSnapConfig = {
         Enabled = WindowInfo.Snapping,
         Distance = WindowInfo.SnapDistance,
@@ -10477,6 +10839,94 @@ function Library:CreateWindow(WindowInfo)
             Padding = UDim.new(0, 4),
             Parent = TopBarActions,
         })
+
+        --// Active Features Button \\--
+        ActiveFeaturesButton = New("TextButton", {
+            BackgroundColor3 = "MainColor",
+            BackgroundTransparency = 1,
+            Size = UDim2.fromOffset(26, 26),
+            Text = "",
+            ZIndex = 11,
+            Parent = TopBarActions,
+        })
+        table.insert(
+            Library.Corners,
+            New("UICorner", {
+                CornerRadius = UDim.new(0, math.max(4, math.floor(WindowInfo.CornerRadius / 2))),
+                Parent = ActiveFeaturesButton,
+            })
+        )
+        Library:AddTooltip("Active Features", "", ActiveFeaturesButton)
+
+        local ActiveIcon = Library:GetCustomIcon("zap") or Library:GetCustomIcon("activity") or Library:GetCustomIcon("sliders-horizontal")
+        local ActiveIconImage
+        if ActiveIcon then
+            ActiveIconImage = New("ImageLabel", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                BackgroundTransparency = 1,
+                Position = UDim2.fromScale(0.5, 0.5),
+                ImageColor3 = "FontColor",
+                ImageTransparency = 0.4,
+                Size = UDim2.fromOffset(15, 15),
+                ZIndex = 12,
+                Parent = ActiveFeaturesButton,
+            })
+            Library:ApplyLucideIcon(ActiveIconImage, ActiveIcon)
+        end
+
+        ActiveFeaturesBadge = New("Frame", {
+            AnchorPoint = Vector2.new(1, 0),
+            BackgroundColor3 = "AccentColor",
+            Position = UDim2.new(1, -1, 0, 1),
+            Size = UDim2.fromOffset(12, 12),
+            Visible = false,
+            ZIndex = 13,
+            Parent = ActiveFeaturesButton,
+        })
+        table.insert(
+            Library.Corners,
+            New("UICorner", {
+                CornerRadius = UDim.new(1, 0),
+                Parent = ActiveFeaturesBadge,
+            })
+        )
+        ActiveFeaturesBadgeLabel = New("TextLabel", {
+            BackgroundTransparency = 1,
+            Size = UDim2.fromScale(1, 1),
+            Text = "0",
+            TextColor3 = "WhiteColor",
+            TextSize = 8,
+            Font = Enum.Font.GothamBold,
+            ZIndex = 14,
+            Parent = ActiveFeaturesBadge,
+        })
+
+        ActiveFeaturesButton.MouseEnter:Connect(function()
+            TweenService:Create(ActiveFeaturesButton, Library.TweenInfo, { BackgroundTransparency = 0.85 }):Play()
+            if ActiveIconImage then
+                TweenService:Create(ActiveIconImage, Library.TweenInfo, { ImageTransparency = 0, ImageColor3 = Library.Scheme.AccentColor }):Play()
+            end
+        end)
+        ActiveFeaturesButton.MouseLeave:Connect(function()
+            TweenService:Create(ActiveFeaturesButton, Library.TweenInfo, { BackgroundTransparency = 1 }):Play()
+            if ActiveIconImage then
+                TweenService:Create(ActiveIconImage, Library.TweenInfo, { ImageTransparency = 0.4, ImageColor3 = Library.Scheme.FontColor }):Play()
+            end
+        end)
+        ActiveFeaturesButton.MouseButton1Click:Connect(function()
+            if NotifHistoryPopover then NotifHistoryPopover.Visible = false end
+            ActiveFeaturesPopover.Visible = not ActiveFeaturesPopover.Visible
+            if ActiveFeaturesPopover.Visible then
+                if Library.RefreshActiveFeaturesList then
+                    Library.RefreshActiveFeaturesList()
+                end
+                ActiveFeaturesPopover.AnchorPoint = Vector2.new(1, 0)
+                ActiveFeaturesPopover.Position = UDim2.fromOffset(
+                    MainFrame.AbsolutePosition.X + MainFrame.AbsoluteSize.X - 8,
+                    MainFrame.AbsolutePosition.Y + 48
+                )
+            end
+        end)
 
         NotifHistoryButton = New("TextButton", {
             BackgroundColor3 = "MainColor",
@@ -11617,6 +12067,7 @@ function Library:CreateWindow(WindowInfo)
 
     if NotifHistoryButton then
         NotifHistoryButton.MouseButton1Click:Connect(function()
+            if ActiveFeaturesPopover then ActiveFeaturesPopover.Visible = false end
             NotifHistoryPopover.Visible = not NotifHistoryPopover.Visible
             if NotifHistoryPopover.Visible then
                 RefreshPopCards()
@@ -11652,6 +12103,345 @@ function Library:CreateWindow(WindowInfo)
         end)
     end
 
+    --// Active Features Popover \\--
+    ActiveFeaturesPopover = New("Frame", {
+        AnchorPoint = Vector2.new(1, 0),
+        BackgroundColor3 = "BackgroundColor",
+        Position = UDim2.new(1, -8, 0, 48),
+        Size = UDim2.fromOffset(320, 360),
+        Visible = false,
+        ZIndex = 35,
+        Parent = ScreenGui,
+    })
+    table.insert(
+        Library.Corners,
+        New("UICorner", {
+            CornerRadius = UDim.new(0, WindowInfo.CornerRadius),
+            Parent = ActiveFeaturesPopover,
+        })
+    )
+    Library:AddOutline(ActiveFeaturesPopover)
+
+    local ActivePopTop = New("Frame", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 36),
+        ZIndex = 36,
+        Parent = ActiveFeaturesPopover,
+    })
+    New("UIPadding", {
+        PaddingLeft = UDim.new(0, 12),
+        PaddingRight = UDim.new(0, 8),
+        Parent = ActivePopTop,
+    })
+
+    local ActivePopTitle = New("TextLabel", {
+        AnchorPoint = Vector2.new(0, 0.5),
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0.5, 0),
+        Size = UDim2.new(1, -64, 1, 0),
+        Text = "Active Features",
+        TextSize = 14,
+        TextColor3 = "FontColor",
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 37,
+        Parent = ActivePopTop,
+    })
+
+    local ActivePopActions = New("Frame", {
+        AnchorPoint = Vector2.new(1, 0.5),
+        BackgroundTransparency = 1,
+        Position = UDim2.new(1, 0, 0.5, 0),
+        Size = UDim2.fromOffset(56, 26),
+        ZIndex = 37,
+        Parent = ActivePopTop,
+    })
+    New("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        HorizontalAlignment = Enum.HorizontalAlignment.Right,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+        Padding = UDim.new(0, 4),
+        Parent = ActivePopActions,
+    })
+
+    -- Turn Off All / Reset All button
+    local ActiveResetAllBtn = New("TextButton", {
+        BackgroundTransparency = 1,
+        Size = UDim2.fromOffset(24, 24),
+        Text = "",
+        ZIndex = 38,
+        Parent = ActivePopActions,
+    })
+    local ResetIcon = Library:GetCustomIcon("rotate-ccw") or Library:GetCustomIcon("power")
+    if ResetIcon then
+        local ResetImg = New("ImageLabel", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            BackgroundTransparency = 1,
+            Position = UDim2.fromScale(0.5, 0.5),
+            Size = UDim2.fromOffset(14, 14),
+            ImageColor3 = "FontColor",
+            ImageTransparency = 0.4,
+            ZIndex = 39,
+            Parent = ActiveResetAllBtn,
+        })
+        Library:ApplyLucideIcon(ResetImg, ResetIcon)
+    end
+    Library:AddTooltip("Turn off all active features", "", ActiveResetAllBtn)
+
+    local ActiveCloseBtn = New("TextButton", {
+        BackgroundTransparency = 1,
+        Size = UDim2.fromOffset(24, 24),
+        Text = "",
+        ZIndex = 38,
+        Parent = ActivePopActions,
+    })
+    local PopCloseIcon = Library:GetCustomIcon("x")
+    if PopCloseIcon then
+        local CloseImg = New("ImageLabel", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            BackgroundTransparency = 1,
+            Position = UDim2.fromScale(0.5, 0.5),
+            Size = UDim2.fromOffset(14, 14),
+            ImageColor3 = "FontColor",
+            ImageTransparency = 0.4,
+            ZIndex = 39,
+            Parent = ActiveCloseBtn,
+        })
+        Library:ApplyLucideIcon(CloseImg, PopCloseIcon)
+    end
+    ActiveCloseBtn.MouseButton1Click:Connect(function()
+        ActiveFeaturesPopover.Visible = false
+    end)
+
+    Library:MakeLine(ActiveFeaturesPopover, {
+        Position = UDim2.fromOffset(0, 36),
+        Size = UDim2.new(1, 0, 0, 1),
+        ZIndex = 36,
+    })
+
+    local ActivePopScroll = New("ScrollingFrame", {
+        AutomaticCanvasSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        CanvasSize = UDim2.fromScale(0, 0),
+        Position = UDim2.fromOffset(0, 37),
+        ScrollBarThickness = 3,
+        ScrollBarImageColor3 = "OutlineColor",
+        Size = UDim2.new(1, 0, 1, -37),
+        ZIndex = 36,
+        Parent = ActiveFeaturesPopover,
+    })
+    New("UIListLayout", {
+        Padding = UDim.new(0, 6),
+        Parent = ActivePopScroll,
+    })
+    New("UIPadding", {
+        PaddingBottom = UDim.new(0, 8),
+        PaddingLeft = UDim.new(0, 8),
+        PaddingRight = UDim.new(0, 8),
+        PaddingTop = UDim.new(0, 8),
+        Parent = ActivePopScroll,
+    })
+
+    local function RefreshActiveFeaturesList()
+        for _, Child in ipairs(ActivePopScroll:GetChildren()) do
+            if Child:IsA("GuiObject") and not Child:IsA("UIListLayout") and not Child:IsA("UIPadding") then
+                Child:Destroy()
+            end
+        end
+
+        local ActiveList = {}
+        for Idx, Toggle in pairs(Library.Toggles) do
+            if Toggle and Toggle.Value == true and not Toggle.Destroyed then
+                table.insert(ActiveList, { Idx = Idx, Toggle = Toggle })
+            end
+        end
+        table.sort(ActiveList, function(a, b)
+            return (a.Toggle.Text or tostring(a.Idx)) < (b.Toggle.Text or tostring(b.Idx))
+        end)
+
+        ActivePopTitle.Text = string.format("Active Features (%d)", #ActiveList)
+
+        if #ActiveList == 0 then
+            local EmptyHolder = New("Frame", {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 120),
+                ZIndex = 37,
+                Parent = ActivePopScroll,
+            })
+            New("UIListLayout", {
+                FillDirection = Enum.FillDirection.Vertical,
+                HorizontalAlignment = Enum.HorizontalAlignment.Center,
+                VerticalAlignment = Enum.VerticalAlignment.Center,
+                Padding = UDim.new(0, 8),
+                Parent = EmptyHolder,
+            })
+            local EmptyText = New("TextLabel", {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 16),
+                Text = "No active features running",
+                TextColor3 = "FontColor",
+                TextTransparency = 0.6,
+                TextSize = 13,
+                Font = Enum.Font.Code,
+                ZIndex = 38,
+                Parent = EmptyHolder,
+            })
+            return
+        end
+
+        for _, Item in ipairs(ActiveList) do
+            local Toggle = Item.Toggle
+            local Card = New("Frame", {
+                BackgroundColor3 = function()
+                    return Library:GetBetterColor(Library.Scheme.BackgroundColor, 2)
+                end,
+                Size = UDim2.new(1, 0, 0, 36),
+                ZIndex = 37,
+                Parent = ActivePopScroll,
+            })
+            table.insert(
+                Library.Corners,
+                New("UICorner", {
+                    CornerRadius = UDim.new(0, math.max(4, math.floor(WindowInfo.CornerRadius / 2))),
+                    Parent = Card,
+                })
+            )
+            Library:AddOutline(Card)
+
+            local NameLabel = New("TextLabel", {
+                AnchorPoint = Vector2.new(0, 0.5),
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 10, 0.5, 0),
+                Size = UDim2.new(1, -84, 1, 0),
+                Text = Toggle.Text or tostring(Item.Idx),
+                TextColor3 = "FontColor",
+                TextSize = 13,
+                Font = Enum.Font.Code,
+                TextTruncate = Enum.TextTruncate.AtEnd,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                ZIndex = 38,
+                Parent = Card,
+            })
+
+            local Controls = New("Frame", {
+                AnchorPoint = Vector2.new(1, 0.5),
+                BackgroundTransparency = 1,
+                Position = UDim2.new(1, -6, 0.5, 0),
+                Size = UDim2.fromOffset(68, 24),
+                ZIndex = 38,
+                Parent = Card,
+            })
+            New("UIListLayout", {
+                FillDirection = Enum.FillDirection.Horizontal,
+                HorizontalAlignment = Enum.HorizontalAlignment.Right,
+                VerticalAlignment = Enum.VerticalAlignment.Center,
+                Padding = UDim.new(0, 6),
+                Parent = Controls,
+            })
+
+            local ResetBtn = New("TextButton", {
+                BackgroundTransparency = 1,
+                Size = UDim2.fromOffset(20, 20),
+                Text = "",
+                ZIndex = 39,
+                Parent = Controls,
+            })
+            local ResetSingleIcon = Library:GetCustomIcon("rotate-ccw")
+            if ResetSingleIcon then
+                local ResetSingleImg = New("ImageLabel", {
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    BackgroundTransparency = 1,
+                    Position = UDim2.fromScale(0.5, 0.5),
+                    Size = UDim2.fromOffset(12, 12),
+                    ImageColor3 = "FontColor",
+                    ImageTransparency = 0.5,
+                    ZIndex = 40,
+                    Parent = ResetBtn,
+                })
+                Library:ApplyLucideIcon(ResetSingleImg, ResetSingleIcon)
+            end
+            Library:AddTooltip("Reset to default", "", ResetBtn)
+            ResetBtn.MouseButton1Click:Connect(function()
+                Toggle:SetValue(Toggle.Default)
+                RefreshActiveFeaturesList()
+            end)
+
+            local SwitchBtn = New("TextButton", {
+                BackgroundColor3 = "AccentColor",
+                Size = UDim2.fromOffset(36, 18),
+                Text = "",
+                ZIndex = 39,
+                Parent = Controls,
+            })
+            table.insert(
+                Library.Corners,
+                New("UICorner", {
+                    CornerRadius = UDim.new(1, 0),
+                    Parent = SwitchBtn,
+                })
+            )
+            local SwitchThumb = New("Frame", {
+                AnchorPoint = Vector2.new(1, 0.5),
+                BackgroundColor3 = "WhiteColor",
+                Position = UDim2.new(1, -2, 0.5, 0),
+                Size = UDim2.fromOffset(14, 14),
+                ZIndex = 40,
+                Parent = SwitchBtn,
+            })
+            table.insert(
+                Library.Corners,
+                New("UICorner", {
+                    CornerRadius = UDim.new(1, 0),
+                    Parent = SwitchThumb,
+                })
+            )
+
+            SwitchBtn.MouseButton1Click:Connect(function()
+                Toggle:SetValue(false)
+                RefreshActiveFeaturesList()
+            end)
+        end
+    end
+
+    ActiveResetAllBtn.MouseButton1Click:Connect(function()
+        for _, Toggle in pairs(Library.Toggles) do
+            if Toggle and Toggle.Value == true and not Toggle.Destroyed then
+                Toggle:SetValue(false)
+            end
+        end
+        RefreshActiveFeaturesList()
+    end)
+
+    Library.RefreshActiveFeaturesList = RefreshActiveFeaturesList
+
+    function Library:UpdateActiveFeaturesCount()
+        local Count = 0
+        for _, Toggle in pairs(Library.Toggles) do
+            if Toggle and Toggle.Value == true and not Toggle.Destroyed then
+                Count += 1
+            end
+        end
+
+        if ActiveFeaturesBadge then
+            ActiveFeaturesBadge.Visible = (Count > 0)
+            if ActiveFeaturesBadgeLabel then
+                ActiveFeaturesBadgeLabel.Text = tostring(Count)
+            end
+        end
+        if FloatActiveBadge then
+            FloatActiveBadge.Visible = (Count > 0)
+            if FloatActiveBadgeLabel then
+                FloatActiveBadgeLabel.Text = tostring(Count)
+            end
+        end
+        if ActivePopTitle then
+            ActivePopTitle.Text = string.format("Active Features (%d)", Count)
+        end
+        if ActiveFeaturesPopover and ActiveFeaturesPopover.Visible then
+            RefreshActiveFeaturesList()
+        end
+    end
+
     --// Small Smart Floating Tab (Minimized Widget) \\--
     local CurrentFloatingOrientation = "vertical"
     local LastFloatingTabPosition = UDim2.new(0, 20, 0.5, -107)
@@ -11675,7 +12465,7 @@ function Library:CreateWindow(WindowInfo)
             return Library:GetBetterColor(Library.Scheme.BackgroundColor, -1)
         end,
         Position = LastFloatingTabPosition,
-        Size = UDim2.fromOffset(56, 214),
+        Size = UDim2.fromOffset(56, 248),
         Visible = false,
         ZIndex = 25,
         Parent = ScreenGui,
@@ -11828,7 +12618,7 @@ function Library:CreateWindow(WindowInfo)
     -- 5. Nav Action Buttons Holder
     FloatActionsHolder = New("Frame", {
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 68),
+        Size = UDim2.new(1, 0, 0, 102),
         ZIndex = 26,
         Parent = FloatingTabWidget,
     })
@@ -11902,7 +12692,117 @@ function Library:CreateWindow(WindowInfo)
         end
     end)
 
-    -- 5b. Notification History Button
+    -- 5b. Active Features Button
+    FloatActiveBtn = New("TextButton", {
+        BackgroundColor3 = "MainColor",
+        BackgroundTransparency = 1,
+        Size = UDim2.fromOffset(30, 30),
+        Text = "",
+        ZIndex = 27,
+        Parent = FloatActionsHolder,
+    })
+    table.insert(
+        Library.Corners,
+        New("UICorner", {
+            CornerRadius = UDim.new(0, 8),
+            Parent = FloatActiveBtn,
+        })
+    )
+    Library:AddTooltip("Active Features", "", FloatActiveBtn)
+
+    local FloatActiveIcon = Library:GetCustomIcon("zap") or Library:GetCustomIcon("activity")
+    local FloatActiveImg
+    if FloatActiveIcon then
+        FloatActiveImg = New("ImageLabel", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            BackgroundTransparency = 1,
+            Position = UDim2.fromScale(0.5, 0.5),
+            Size = UDim2.fromOffset(16, 16),
+            ImageColor3 = "FontColor",
+            ImageTransparency = 0.4,
+            ZIndex = 28,
+            Parent = FloatActiveBtn,
+        })
+        Library:ApplyLucideIcon(FloatActiveImg, FloatActiveIcon)
+    end
+
+    FloatActiveBadge = New("Frame", {
+        AnchorPoint = Vector2.new(1, 0),
+        BackgroundColor3 = "AccentColor",
+        Position = UDim2.new(1, -1, 0, 1),
+        Size = UDim2.fromOffset(12, 12),
+        Visible = false,
+        ZIndex = 29,
+        Parent = FloatActiveBtn,
+    })
+    table.insert(
+        Library.Corners,
+        New("UICorner", {
+            CornerRadius = UDim.new(1, 0),
+            Parent = FloatActiveBadge,
+        })
+    )
+    FloatActiveBadgeLabel = New("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.fromScale(1, 1),
+        Text = "0",
+        TextColor3 = "WhiteColor",
+        TextSize = 8,
+        Font = Enum.Font.GothamBold,
+        ZIndex = 30,
+        Parent = FloatActiveBadge,
+    })
+
+    FloatActiveBtn.MouseEnter:Connect(function()
+        TweenService:Create(FloatActiveBtn, Library.TweenInfo, {
+            BackgroundTransparency = 0.85,
+        }):Play()
+        if FloatActiveImg then
+            TweenService:Create(FloatActiveImg, Library.TweenInfo, {
+                ImageTransparency = 0,
+                ImageColor3 = Library.Scheme.AccentColor,
+            }):Play()
+        end
+    end)
+    FloatActiveBtn.MouseLeave:Connect(function()
+        TweenService:Create(FloatActiveBtn, Library.TweenInfo, {
+            BackgroundTransparency = 1,
+        }):Play()
+        if FloatActiveImg then
+            TweenService:Create(FloatActiveImg, Library.TweenInfo, {
+                ImageTransparency = 0.4,
+                ImageColor3 = Library.Scheme.FontColor,
+            }):Play()
+        end
+    end)
+    FloatActiveBtn.MouseButton1Click:Connect(function()
+        if NotifHistoryPopover then NotifHistoryPopover.Visible = false end
+        ActiveFeaturesPopover.Visible = not ActiveFeaturesPopover.Visible
+        if ActiveFeaturesPopover.Visible then
+            RefreshActiveFeaturesList()
+            local Cam = workspace.CurrentCamera
+            local VpX = Cam and Cam.ViewportSize.X or 1000
+            local VpY = Cam and Cam.ViewportSize.Y or 800
+
+            if CurrentFloatingOrientation == "horizontal" then
+                ActiveFeaturesPopover.AnchorPoint = Vector2.new(0.5, 0)
+                local TargetX = math.clamp(FloatingTabWidget.AbsolutePosition.X + (FloatingTabWidget.AbsoluteSize.X / 2), 170, VpX - 170)
+                local TargetY = (FloatingTabWidget.AbsolutePosition.Y + FloatingTabWidget.AbsoluteSize.Y + 390 <= VpY)
+                    and (FloatingTabWidget.AbsolutePosition.Y + FloatingTabWidget.AbsoluteSize.Y + 10)
+                    or (FloatingTabWidget.AbsolutePosition.Y - 380)
+                ActiveFeaturesPopover.Position = UDim2.fromOffset(TargetX, math.clamp(TargetY, 10, VpY - 380))
+            else
+                ActiveFeaturesPopover.AnchorPoint = Vector2.new(0, 0)
+                local TargetX = (FloatingTabWidget.AbsolutePosition.X + FloatingTabWidget.AbsoluteSize.X + 330 <= VpX)
+                    and (FloatingTabWidget.AbsolutePosition.X + FloatingTabWidget.AbsoluteSize.X + 10)
+                    or (FloatingTabWidget.AbsolutePosition.X - 330)
+                local TargetY = math.clamp(FloatingTabWidget.AbsolutePosition.Y, 10, VpY - 380)
+                ActiveFeaturesPopover.Position = UDim2.fromOffset(math.clamp(TargetX, 10, VpX - 330), TargetY)
+            end
+        end
+    end)
+
+    -- 5c. Notification History Button
     local FloatNotifBtn = New("TextButton", {
         BackgroundColor3 = "MainColor",
         BackgroundTransparency = 1,
@@ -11976,6 +12876,7 @@ function Library:CreateWindow(WindowInfo)
         end
     end)
     FloatNotifBtn.MouseButton1Click:Connect(function()
+        if ActiveFeaturesPopover then ActiveFeaturesPopover.Visible = false end
         NotifHistoryPopover.Visible = not NotifHistoryPopover.Visible
         if NotifHistoryPopover.Visible then
             RefreshPopCards()
@@ -12021,7 +12922,7 @@ function Library:CreateWindow(WindowInfo)
         CurrentFloatingOrientation = NewOrientation
 
         if NewOrientation == "horizontal" then
-            FloatingTabWidget.Size = UDim2.fromOffset(248, 52)
+            FloatingTabWidget.Size = UDim2.fromOffset(280, 52)
             FloatLayout.FillDirection = Enum.FillDirection.Horizontal
             FloatBrandLayout.FillDirection = Enum.FillDirection.Horizontal
             FloatBrandCard.Size = UDim2.new(0, 96, 1, 0)
@@ -12029,9 +12930,9 @@ function Library:CreateWindow(WindowInfo)
             FloatLine1.Size = UDim2.new(0, 1, 0, 28)
             FloatLine2.Size = UDim2.new(0, 1, 0, 28)
             FloatActionsLayout.FillDirection = Enum.FillDirection.Horizontal
-            FloatActionsHolder.Size = UDim2.new(0, 68, 1, 0)
+            FloatActionsHolder.Size = UDim2.new(0, 102, 1, 0)
         else
-            FloatingTabWidget.Size = UDim2.fromOffset(56, 214)
+            FloatingTabWidget.Size = UDim2.fromOffset(56, 248)
             FloatLayout.FillDirection = Enum.FillDirection.Vertical
             FloatBrandLayout.FillDirection = Enum.FillDirection.Vertical
             FloatBrandCard.Size = UDim2.new(1, 0, 0, 58)
@@ -12039,7 +12940,7 @@ function Library:CreateWindow(WindowInfo)
             FloatLine1.Size = UDim2.new(0, 36, 0, 1)
             FloatLine2.Size = UDim2.new(0, 36, 0, 1)
             FloatActionsLayout.FillDirection = Enum.FillDirection.Vertical
-            FloatActionsHolder.Size = UDim2.new(1, 0, 0, 68)
+            FloatActionsHolder.Size = UDim2.new(1, 0, 0, 102)
         end
     end
 
@@ -12059,6 +12960,7 @@ function Library:CreateWindow(WindowInfo)
         if IsMinimized then
             if ResizeButton then ResizeButton.Visible = false end
             if NotifHistoryPopover then NotifHistoryPopover.Visible = false end
+            if ActiveFeaturesPopover then ActiveFeaturesPopover.Visible = false end
 
             MainFrame.Visible = false
 
@@ -12069,11 +12971,17 @@ function Library:CreateWindow(WindowInfo)
             if FloatNotifBadge then
                 FloatNotifBadge.Visible = (#Library.NotificationHistory > 0)
             end
+            if Library.UpdateActiveFeaturesCount then
+                Library:UpdateActiveFeaturesCount()
+            end
         else
             LastFloatingTabPosition = FloatingTabWidget.Position
             FloatingTabWidget.Visible = false
             if NotifHistoryPopover then
                 NotifHistoryPopover.Visible = false
+            end
+            if ActiveFeaturesPopover then
+                ActiveFeaturesPopover.Visible = false
             end
 
             -- Center MainFrame in the middle of the screen every time it reopens
