@@ -10281,6 +10281,12 @@ function Library:CreateWindow(WindowInfo)
     local BottomBackground
     local FooterLabel
     local TopBar
+    local NotifHistoryButton
+    local NotifBadge
+    local MinimizeButton
+    local MinimizeBar
+    local MinimizeIconImage
+    local FooterLinksContainer
     local WindowSnapConfig = {
         Enabled = WindowInfo.Snapping,
         Distance = WindowInfo.SnapDistance,
@@ -10461,7 +10467,7 @@ function Library:CreateWindow(WindowInfo)
             Parent = TopBarActions,
         })
 
-        local NotifHistoryButton = New("TextButton", {
+        NotifHistoryButton = New("TextButton", {
             BackgroundColor3 = "MainColor",
             BackgroundTransparency = 1,
             Size = UDim2.fromOffset(26, 26),
@@ -10494,7 +10500,7 @@ function Library:CreateWindow(WindowInfo)
             Library:ApplyLucideIcon(BellIconImage, BellIcon)
         end
 
-        local NotifBadge = New("Frame", {
+        NotifBadge = New("Frame", {
             AnchorPoint = Vector2.new(1, 0),
             BackgroundColor3 = "AccentColor",
             Position = UDim2.new(1, -2, 0, 2),
@@ -10535,9 +10541,6 @@ function Library:CreateWindow(WindowInfo)
             end
         end))
 
-        local MinimizeButton
-        local MinimizeBar
-        local MinimizeIconImage
         if WindowInfo.Minimizable ~= false then
             MinimizeButton = New("TextButton", {
                 BackgroundColor3 = "MainColor",
