@@ -3052,7 +3052,7 @@ function Library:OpenDropdownModal(Dropdown)
     local HeaderFrame = New("Frame", {
         BackgroundTransparency = 1,
         Position = UDim2.fromOffset(0, 0),
-        Size = UDim2.new(1, 0, 0, 40),
+        Size = UDim2.new(1, 0, 0, 42),
         ZIndex = 41,
         Parent = Modal,
     })
@@ -3062,26 +3062,73 @@ function Library:OpenDropdownModal(Dropdown)
         Parent = HeaderFrame,
     })
 
-    local TitleLabel = New("TextLabel", {
+    local HeaderLeft = New("Frame", {
         AnchorPoint = Vector2.new(0, 0.5),
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 0, 0.5, 0),
-        Size = UDim2.new(1, -30, 1, 0),
-        Text = Dropdown.Text or "A searchable dropdown",
-        TextColor3 = "FontColor",
-        TextSize = 14,
-        Font = Enum.Font.Code,
-        TextXAlignment = Enum.TextXAlignment.Left,
+        Size = UDim2.new(1, -36, 1, 0),
         ZIndex = 42,
         Parent = HeaderFrame,
     })
+    New("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        HorizontalAlignment = Enum.HorizontalAlignment.Left,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+        Padding = UDim.new(0, 8),
+        Parent = HeaderLeft,
+    })
+
+    local TitleLabel = New("TextLabel", {
+        AutomaticSize = Enum.AutomaticSize.X,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 0, 1, 0),
+        Text = Dropdown.Text or "Select Options",
+        TextColor3 = "FontColor",
+        TextSize = 14,
+        Font = Enum.Font.GothamBold,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 42,
+        Parent = HeaderLeft,
+    })
+
+    if Dropdown.Multi then
+        local MultiBadge = New("Frame", {
+            BackgroundColor3 = "AccentColor",
+            BackgroundTransparency = 0.85,
+            Size = UDim2.fromOffset(76, 20),
+            ZIndex = 42,
+            Parent = HeaderLeft,
+        })
+        table.insert(
+            Library.Corners,
+            New("UICorner", {
+                CornerRadius = UDim.new(0, 4),
+                Parent = MultiBadge,
+            })
+        )
+        New("UIStroke", {
+            Color = "AccentColor",
+            Thickness = 1,
+            Parent = MultiBadge,
+        })
+        local MultiText = New("TextLabel", {
+            BackgroundTransparency = 1,
+            Size = UDim2.fromScale(1, 1),
+            Text = "Multi-Select",
+            TextColor3 = "AccentColor",
+            TextSize = 10,
+            Font = Enum.Font.GothamBold,
+            ZIndex = 43,
+            Parent = MultiBadge,
+        })
+    end
 
     local CloseBtn = New("TextButton", {
         AnchorPoint = Vector2.new(1, 0.5),
         BackgroundColor3 = "MainColor",
         BackgroundTransparency = 1,
         Position = UDim2.new(1, 0, 0.5, 0),
-        Size = UDim2.fromOffset(22, 22),
+        Size = UDim2.fromOffset(24, 24),
         Text = "",
         ZIndex = 42,
         Parent = HeaderFrame,
@@ -3127,10 +3174,16 @@ function Library:OpenDropdownModal(Dropdown)
         Library.DropdownModalInstance = nil
     end)
 
+    Library:MakeLine(Modal, {
+        Position = UDim2.fromOffset(0, 42),
+        Size = UDim2.new(1, 0, 0, 1),
+        ZIndex = 41,
+    })
+
     -- 2. Search Bar
     local SearchContainer = New("Frame", {
         BackgroundColor3 = "MainColor",
-        Position = UDim2.fromOffset(14, 44),
+        Position = UDim2.fromOffset(14, 48),
         Size = UDim2.new(1, -28, 0, 32),
         ZIndex = 41,
         Parent = Modal,
@@ -3165,7 +3218,7 @@ function Library:OpenDropdownModal(Dropdown)
     local SearchTextBox = New("TextBox", {
         BackgroundTransparency = 1,
         ClearTextOnFocus = false,
-        PlaceholderText = "Search...",
+        PlaceholderText = "Search options...",
         Position = UDim2.fromOffset(30, 0),
         Size = UDim2.new(1, -38, 1, 0),
         Text = "",
@@ -3192,8 +3245,8 @@ function Library:OpenDropdownModal(Dropdown)
         AutomaticCanvasSize = Enum.AutomaticSize.Y,
         ScrollBarThickness = 3,
         ScrollBarImageColor3 = "OutlineColor",
-        Position = UDim2.fromOffset(14, 84),
-        Size = UDim2.new(1, -28, 1, -94),
+        Position = UDim2.fromOffset(14, 88),
+        Size = UDim2.new(1, -28, 1, -98),
         ZIndex = 41,
         Parent = Modal,
     })
@@ -3221,25 +3274,33 @@ function Library:OpenDropdownModal(Dropdown)
             local Selected = IsOptionSelected(Item.Value)
             TweenService:Create(Item.Card, Library.TweenInfo, {
                 BackgroundColor3 = Selected and Library.Scheme.AccentColor or Library.Scheme.MainColor,
-                BackgroundTransparency = Selected and 0.8 or 0,
+                BackgroundTransparency = Selected and 0.82 or 0,
             }):Play()
             TweenService:Create(Item.Stroke, Library.TweenInfo, {
                 Color = Selected and Library.Scheme.AccentColor or Library.Scheme.OutlineColor,
             }):Play()
+            if Item.CheckIcon then
+                TweenService:Create(Item.CheckIcon, Library.TweenInfo, {
+                    ImageTransparency = Selected and 0 or 0.85,
+                    ImageColor3 = Selected and Library.Scheme.AccentColor or Library.Scheme.FontColor,
+                }):Play()
+            end
             Item.Label.TextColor3 = Selected and Library.Scheme.AccentColor or Library.Scheme.FontColor
         end
     end
 
     local Values = Dropdown.Values
     local IsDictionary = not IsSequentialArray(Values)
+    local CheckCustomIcon = Library:GetCustomIcon("check")
 
     for Key, RawValue in pairs(Values) do
         local Value = IsDictionary and Key or RawValue
         local DisplayText = tostring(RawValue)
+        local Selected = IsOptionSelected(Value)
 
         local Card = New("TextButton", {
-            BackgroundColor3 = IsOptionSelected(Value) and "AccentColor" or "MainColor",
-            BackgroundTransparency = IsOptionSelected(Value) and 0.8 or 0,
+            BackgroundColor3 = Selected and "AccentColor" or "MainColor",
+            BackgroundTransparency = Selected and 0.82 or 0,
             Size = UDim2.fromOffset(0, 0),
             Text = "",
             ZIndex = 42,
@@ -3253,17 +3314,32 @@ function Library:OpenDropdownModal(Dropdown)
             })
         )
         local CardStroke = New("UIStroke", {
-            Color = IsOptionSelected(Value) and "AccentColor" or "OutlineColor",
+            Color = Selected and "AccentColor" or "OutlineColor",
             Parent = Card,
         })
+
+        local CheckIconImg
+        if CheckCustomIcon then
+            CheckIconImg = New("ImageLabel", {
+                AnchorPoint = Vector2.new(0, 0.5),
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 8, 0.5, 0),
+                Size = UDim2.fromOffset(14, 14),
+                ImageColor3 = Selected and "AccentColor" or "FontColor",
+                ImageTransparency = Selected and 0 or 0.85,
+                ZIndex = 43,
+                Parent = Card,
+            })
+            Library:ApplyLucideIcon(CheckIconImg, CheckCustomIcon)
+        end
 
         local CardLabel = New("TextLabel", {
             AnchorPoint = Vector2.new(0, 0.5),
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 10, 0.5, 0),
-            Size = UDim2.new(1, -20, 1, 0),
+            Position = UDim2.new(0, CheckCustomIcon and 26 or 10, 0.5, 0),
+            Size = UDim2.new(1, CheckCustomIcon and -34 or -20, 1, 0),
             Text = DisplayText,
-            TextColor3 = IsOptionSelected(Value) and "AccentColor" or "FontColor",
+            TextColor3 = Selected and "AccentColor" or "FontColor",
             TextSize = 13,
             Font = Enum.Font.Code,
             TextTruncate = Enum.TextTruncate.AtEnd,
@@ -3298,6 +3374,7 @@ function Library:OpenDropdownModal(Dropdown)
             Card = Card,
             Stroke = CardStroke,
             Label = CardLabel,
+            CheckIcon = CheckIconImg,
             Value = Value,
             Text = DisplayText:lower(),
         })
@@ -8133,35 +8210,60 @@ do
             AnchorPoint = Vector2.new(1, 0.5),
             ImageColor3 = "FontColor",
             ImageTransparency = 0.5,
-            Position = UDim2.new(1, -20, 0.5, 0),
-            Size = UDim2.fromOffset(16, 16),
+            Position = UDim2.new(1, -22, 0.5, 0),
+            Size = UDim2.fromOffset(15, 15),
             Parent = DisplayContainer,
         })
         if ArrowIcon then
             Library:ApplyLucideIcon(ArrowImage, ArrowIcon)
         end
 
-        local ExpandButton = New("ImageButton", {
+        local ExpandButton = New("TextButton", {
             AnchorPoint = Vector2.new(1, 0.5),
+            BackgroundColor3 = "MainColor",
             BackgroundTransparency = 1,
-            Position = UDim2.fromScale(1, 0.5),
-            Size = UDim2.fromOffset(16, 16),
-            ImageColor3 = "FontColor",
-            ImageTransparency = 0.5,
+            Position = UDim2.new(1, -2, 0.5, 0),
+            Size = UDim2.fromOffset(18, 18),
+            Text = "",
             ZIndex = 4,
             Parent = DisplayContainer,
         })
+        table.insert(
+            Library.Corners,
+            New("UICorner", {
+                CornerRadius = UDim.new(0, 4),
+                Parent = ExpandButton,
+            })
+        )
+
         local ExpandIcon = Library:GetCustomIcon("maximize-2") or Library:GetCustomIcon("expand")
+        local ExpandIconImg
         if ExpandIcon then
-            Library:ApplyLucideIcon(ExpandButton, ExpandIcon)
+            ExpandIconImg = New("ImageLabel", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                BackgroundTransparency = 1,
+                Position = UDim2.fromScale(0.5, 0.5),
+                Size = UDim2.fromOffset(12, 12),
+                ImageColor3 = "FontColor",
+                ImageTransparency = 0.5,
+                ZIndex = 5,
+                Parent = ExpandButton,
+            })
+            Library:ApplyLucideIcon(ExpandIconImg, ExpandIcon)
         end
-        Library:AddTooltip("Expand options grid", "", ExpandButton)
+        Library:AddTooltip("Expand searchable options grid", "", ExpandButton)
 
         ExpandButton.MouseEnter:Connect(function()
-            TweenService:Create(ExpandButton, Library.TweenInfo, { ImageTransparency = 0, ImageColor3 = Library.Scheme.AccentColor }):Play()
+            TweenService:Create(ExpandButton, Library.TweenInfo, { BackgroundTransparency = 0.85 }):Play()
+            if ExpandIconImg then
+                TweenService:Create(ExpandIconImg, Library.TweenInfo, { ImageTransparency = 0, ImageColor3 = Library.Scheme.AccentColor }):Play()
+            end
         end)
         ExpandButton.MouseLeave:Connect(function()
-            TweenService:Create(ExpandButton, Library.TweenInfo, { ImageTransparency = 0.5, ImageColor3 = Library.Scheme.FontColor }):Play()
+            TweenService:Create(ExpandButton, Library.TweenInfo, { BackgroundTransparency = 1 }):Play()
+            if ExpandIconImg then
+                TweenService:Create(ExpandIconImg, Library.TweenInfo, { ImageTransparency = 0.5, ImageColor3 = Library.Scheme.FontColor }):Play()
+            end
         end)
         ExpandButton.MouseButton1Click:Connect(function()
             if Dropdown.Disabled then return end
@@ -10858,7 +10960,7 @@ function Library:CreateWindow(WindowInfo)
         )
         Library:AddTooltip("Active Features", "", ActiveFeaturesButton)
 
-        local ActiveIcon = Library:GetCustomIcon("zap") or Library:GetCustomIcon("activity") or Library:GetCustomIcon("sliders-horizontal")
+        local ActiveIcon = Library:GetCustomIcon("sliders-horizontal") or Library:GetCustomIcon("sliders") or Library:GetCustomIcon("activity")
         local ActiveIconImage
         if ActiveIcon then
             ActiveIconImage = New("ImageLabel", {
@@ -10917,14 +11019,18 @@ function Library:CreateWindow(WindowInfo)
             if NotifHistoryPopover then NotifHistoryPopover.Visible = false end
             ActiveFeaturesPopover.Visible = not ActiveFeaturesPopover.Visible
             if ActiveFeaturesPopover.Visible then
-                if Library.RefreshActiveFeaturesList then
-                    Library.RefreshActiveFeaturesList()
+                if Library.RefreshActiveFeaturesCards then
+                    Library.RefreshActiveFeaturesCards(true)
                 end
                 ActiveFeaturesPopover.AnchorPoint = Vector2.new(1, 0)
                 ActiveFeaturesPopover.Position = UDim2.fromOffset(
                     MainFrame.AbsolutePosition.X + MainFrame.AbsoluteSize.X - 8,
                     MainFrame.AbsolutePosition.Y + 48
                 )
+            else
+                if Library.OnActiveFeaturesClosed then
+                    Library.OnActiveFeaturesClosed()
+                end
             end
         end)
 
@@ -11107,8 +11213,8 @@ function Library:CreateWindow(WindowInfo)
         RightWrapper = New("Frame", {
             AnchorPoint = Vector2.new(1, 0.5),
             BackgroundTransparency = 1,
-            Position = UDim2.new(1, (WindowInfo.Minimizable ~= false and -98 or -68), 0.5, 0),
-            Size = UDim2.new(1, -InitialLeftWidth - (WindowInfo.Minimizable ~= false and 108 or 78) - 1, 1, -16),
+            Position = UDim2.new(1, (WindowInfo.Minimizable ~= false and -124 or -94), 0.5, 0),
+            Size = UDim2.new(1, -InitialLeftWidth - (WindowInfo.Minimizable ~= false and 134 or 104) - 1, 1, -16),
             ZIndex = 2,
             Parent = TopBar,
         })
@@ -11718,7 +11824,7 @@ function Library:CreateWindow(WindowInfo)
         DividerLine.Position = UDim2.fromOffset(Width, 0)
 
         TitleHolder.Size = UDim2.new(0, Width, 1, 0)
-        RightWrapper.Size = UDim2.new(1, -Width - (WindowInfo.Minimizable ~= false and 80 or 50) - 1, 1, -16)
+        RightWrapper.Size = UDim2.new(1, -Width - (WindowInfo.Minimizable ~= false and 134 or 104) - 1, 1, -16)
         Tabs.Size = UDim2.new(0, Width, 1, -70)
         Container.Size = UDim2.new(1, -Width - 1, 1, -70)
 
@@ -12139,7 +12245,7 @@ function Library:CreateWindow(WindowInfo)
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 0, 0.5, 0),
         Size = UDim2.new(1, -64, 1, 0),
-        Text = "Active Features",
+        Text = "Active Features (0)",
         TextSize = 14,
         TextColor3 = "FontColor",
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -12163,7 +12269,7 @@ function Library:CreateWindow(WindowInfo)
         Parent = ActivePopActions,
     })
 
-    -- Turn Off All / Reset All button
+    -- Turn Off All button
     local ActiveResetAllBtn = New("TextButton", {
         BackgroundTransparency = 1,
         Size = UDim2.fromOffset(24, 24),
@@ -12208,9 +12314,6 @@ function Library:CreateWindow(WindowInfo)
         })
         Library:ApplyLucideIcon(CloseImg, PopCloseIcon)
     end
-    ActiveCloseBtn.MouseButton1Click:Connect(function()
-        ActiveFeaturesPopover.Visible = false
-    end)
 
     Library:MakeLine(ActiveFeaturesPopover, {
         Position = UDim2.fromOffset(0, 36),
@@ -12242,26 +12345,41 @@ function Library:CreateWindow(WindowInfo)
         Parent = ActivePopScroll,
     })
 
-    local function RefreshActiveFeaturesList()
+    local OpenActiveSnapshot = nil
+
+    local function CountActiveInSnapshot()
+        if not OpenActiveSnapshot then return 0 end
+        local cnt = 0
+        for _, Item in ipairs(OpenActiveSnapshot) do
+            if Item.Toggle and Item.Toggle.Value == true and not Item.Toggle.Destroyed then
+                cnt += 1
+            end
+        end
+        return cnt
+    end
+
+    local function RefreshActiveFeaturesCards(ForceNewSnapshot: boolean)
         for _, Child in ipairs(ActivePopScroll:GetChildren()) do
             if Child:IsA("GuiObject") and not Child:IsA("UIListLayout") and not Child:IsA("UIPadding") then
                 Child:Destroy()
             end
         end
 
-        local ActiveList = {}
-        for Idx, Toggle in pairs(Library.Toggles) do
-            if Toggle and Toggle.Value == true and not Toggle.Destroyed then
-                table.insert(ActiveList, { Idx = Idx, Toggle = Toggle })
+        if ForceNewSnapshot or not OpenActiveSnapshot then
+            OpenActiveSnapshot = {}
+            for Idx, Toggle in pairs(Library.Toggles) do
+                if Toggle and Toggle.Value == true and not Toggle.Destroyed then
+                    table.insert(OpenActiveSnapshot, { Idx = Idx, Toggle = Toggle })
+                end
             end
+            table.sort(OpenActiveSnapshot, function(a, b)
+                return (a.Toggle.Text or tostring(a.Idx)) < (b.Toggle.Text or tostring(b.Idx))
+            end)
         end
-        table.sort(ActiveList, function(a, b)
-            return (a.Toggle.Text or tostring(a.Idx)) < (b.Toggle.Text or tostring(b.Idx))
-        end)
 
-        ActivePopTitle.Text = string.format("Active Features (%d)", #ActiveList)
+        ActivePopTitle.Text = string.format("Active Features (%d)", CountActiveInSnapshot())
 
-        if #ActiveList == 0 then
+        if #OpenActiveSnapshot == 0 then
             local EmptyHolder = New("Frame", {
                 BackgroundTransparency = 1,
                 Size = UDim2.new(1, 0, 0, 120),
@@ -12289,7 +12407,7 @@ function Library:CreateWindow(WindowInfo)
             return
         end
 
-        for _, Item in ipairs(ActiveList) do
+        for _, Item in ipairs(OpenActiveSnapshot) do
             local Toggle = Item.Toggle
             local Card = New("Frame", {
                 BackgroundColor3 = function()
@@ -12315,6 +12433,7 @@ function Library:CreateWindow(WindowInfo)
                 Size = UDim2.new(1, -84, 1, 0),
                 Text = Toggle.Text or tostring(Item.Idx),
                 TextColor3 = "FontColor",
+                TextTransparency = Toggle.Value and 0 or 0.5,
                 TextSize = 13,
                 Font = Enum.Font.Code,
                 TextTruncate = Enum.TextTruncate.AtEnd,
@@ -12361,13 +12480,9 @@ function Library:CreateWindow(WindowInfo)
                 Library:ApplyLucideIcon(ResetSingleImg, ResetSingleIcon)
             end
             Library:AddTooltip("Reset to default", "", ResetBtn)
-            ResetBtn.MouseButton1Click:Connect(function()
-                Toggle:SetValue(Toggle.Default)
-                RefreshActiveFeaturesList()
-            end)
 
             local SwitchBtn = New("TextButton", {
-                BackgroundColor3 = "AccentColor",
+                BackgroundColor3 = Toggle.Value and "AccentColor" or "OutlineColor",
                 Size = UDim2.fromOffset(36, 18),
                 Text = "",
                 ZIndex = 39,
@@ -12381,9 +12496,9 @@ function Library:CreateWindow(WindowInfo)
                 })
             )
             local SwitchThumb = New("Frame", {
-                AnchorPoint = Vector2.new(1, 0.5),
-                BackgroundColor3 = "WhiteColor",
-                Position = UDim2.new(1, -2, 0.5, 0),
+                AnchorPoint = Vector2.new(Toggle.Value and 1 or 0, 0.5),
+                BackgroundColor3 = Toggle.Value and Library.Scheme.WhiteColor or Library:GetBetterColor(Library.Scheme.FontColor, -30),
+                Position = Toggle.Value and UDim2.new(1, -2, 0.5, 0) or UDim2.new(0, 2, 0.5, 0),
                 Size = UDim2.fromOffset(14, 14),
                 ZIndex = 40,
                 Parent = SwitchBtn,
@@ -12396,23 +12511,64 @@ function Library:CreateWindow(WindowInfo)
                 })
             )
 
+            local function UpdateSwitchVisual(isOn: boolean)
+                TweenService:Create(SwitchBtn, Library.TweenInfo, {
+                    BackgroundColor3 = isOn and Library.Scheme.AccentColor or Library.Scheme.OutlineColor,
+                }):Play()
+                TweenService:Create(SwitchThumb, Library.TweenInfo, {
+                    AnchorPoint = Vector2.new(isOn and 1 or 0, 0.5),
+                    Position = isOn and UDim2.new(1, -2, 0.5, 0) or UDim2.new(0, 2, 0.5, 0),
+                    BackgroundColor3 = isOn and Library.Scheme.WhiteColor or Library:GetBetterColor(Library.Scheme.FontColor, -30),
+                }):Play()
+                TweenService:Create(NameLabel, Library.TweenInfo, {
+                    TextTransparency = isOn and 0 or 0.5,
+                }):Play()
+                ActivePopTitle.Text = string.format("Active Features (%d)", CountActiveInSnapshot())
+            end
+
+            Item.UpdateVisual = UpdateSwitchVisual
+
+            ResetBtn.MouseButton1Click:Connect(function()
+                Toggle:SetValue(Toggle.Default)
+                UpdateSwitchVisual(Toggle.Value)
+            end)
+
             SwitchBtn.MouseButton1Click:Connect(function()
-                Toggle:SetValue(false)
-                RefreshActiveFeaturesList()
+                local NewVal = not Toggle.Value
+                Toggle:SetValue(NewVal)
+                UpdateSwitchVisual(NewVal)
             end)
         end
     end
 
-    ActiveResetAllBtn.MouseButton1Click:Connect(function()
-        for _, Toggle in pairs(Library.Toggles) do
-            if Toggle and Toggle.Value == true and not Toggle.Destroyed then
-                Toggle:SetValue(false)
-            end
-        end
-        RefreshActiveFeaturesList()
+    ActiveCloseBtn.MouseButton1Click:Connect(function()
+        ActiveFeaturesPopover.Visible = false
+        OpenActiveSnapshot = nil
     end)
 
-    Library.RefreshActiveFeaturesList = RefreshActiveFeaturesList
+    ActiveResetAllBtn.MouseButton1Click:Connect(function()
+        if OpenActiveSnapshot then
+            for _, Item in ipairs(OpenActiveSnapshot) do
+                if Item.Toggle and not Item.Toggle.Destroyed then
+                    Item.Toggle:SetValue(false)
+                    if Item.UpdateVisual then
+                        Item.UpdateVisual(false)
+                    end
+                end
+            end
+        else
+            for _, Toggle in pairs(Library.Toggles) do
+                if Toggle and Toggle.Value == true and not Toggle.Destroyed then
+                    Toggle:SetValue(false)
+                end
+            end
+        end
+    end)
+
+    Library.RefreshActiveFeaturesCards = RefreshActiveFeaturesCards
+    Library.OnActiveFeaturesClosed = function()
+        OpenActiveSnapshot = nil
+    end
 
     function Library:UpdateActiveFeaturesCount()
         local Count = 0
@@ -12434,11 +12590,8 @@ function Library:CreateWindow(WindowInfo)
                 FloatActiveBadgeLabel.Text = tostring(Count)
             end
         end
-        if ActivePopTitle then
+        if ActivePopTitle and not (ActiveFeaturesPopover and ActiveFeaturesPopover.Visible) then
             ActivePopTitle.Text = string.format("Active Features (%d)", Count)
-        end
-        if ActiveFeaturesPopover and ActiveFeaturesPopover.Visible then
-            RefreshActiveFeaturesList()
         end
     end
 
@@ -12710,7 +12863,7 @@ function Library:CreateWindow(WindowInfo)
     )
     Library:AddTooltip("Active Features", "", FloatActiveBtn)
 
-    local FloatActiveIcon = Library:GetCustomIcon("zap") or Library:GetCustomIcon("activity")
+    local FloatActiveIcon = Library:GetCustomIcon("sliders-horizontal") or Library:GetCustomIcon("sliders") or Library:GetCustomIcon("activity")
     local FloatActiveImg
     if FloatActiveIcon then
         FloatActiveImg = New("ImageLabel", {
@@ -12779,7 +12932,9 @@ function Library:CreateWindow(WindowInfo)
         if NotifHistoryPopover then NotifHistoryPopover.Visible = false end
         ActiveFeaturesPopover.Visible = not ActiveFeaturesPopover.Visible
         if ActiveFeaturesPopover.Visible then
-            RefreshActiveFeaturesList()
+            if Library.RefreshActiveFeaturesCards then
+                Library.RefreshActiveFeaturesCards(true)
+            end
             local Cam = workspace.CurrentCamera
             local VpX = Cam and Cam.ViewportSize.X or 1000
             local VpY = Cam and Cam.ViewportSize.Y or 800
@@ -12798,6 +12953,10 @@ function Library:CreateWindow(WindowInfo)
                     or (FloatingTabWidget.AbsolutePosition.X - 330)
                 local TargetY = math.clamp(FloatingTabWidget.AbsolutePosition.Y, 10, VpY - 380)
                 ActiveFeaturesPopover.Position = UDim2.fromOffset(math.clamp(TargetX, 10, VpX - 330), TargetY)
+            end
+        else
+            if Library.OnActiveFeaturesClosed then
+                Library.OnActiveFeaturesClosed()
             end
         end
     end)
