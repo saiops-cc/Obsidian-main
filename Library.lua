@@ -3026,14 +3026,14 @@ function Library:OpenDropdownModal(Dropdown)
             return Library:GetBetterColor(Library.Scheme.BackgroundColor, -1)
         end,
         Position = UDim2.fromScale(0.5, 0.5),
-        Size = UDim2.fromOffset(480, 420),
+        Size = UDim2.fromOffset(460, 360),
         ZIndex = 40,
         Parent = ScreenGui,
     })
     table.insert(
         Library.Corners,
         New("UICorner", {
-            CornerRadius = UDim.new(0, 10),
+            CornerRadius = UDim.new(0, 8),
             Parent = Modal,
         })
     )
@@ -3052,13 +3052,13 @@ function Library:OpenDropdownModal(Dropdown)
     local HeaderFrame = New("Frame", {
         BackgroundTransparency = 1,
         Position = UDim2.fromOffset(0, 0),
-        Size = UDim2.new(1, 0, 0, 42),
+        Size = UDim2.new(1, 0, 0, 38),
         ZIndex = 41,
         Parent = Modal,
     })
     New("UIPadding", {
-        PaddingLeft = UDim.new(0, 14),
-        PaddingRight = UDim.new(0, 14),
+        PaddingLeft = UDim.new(0, 12),
+        PaddingRight = UDim.new(0, 12),
         Parent = HeaderFrame,
     })
 
@@ -3084,7 +3084,7 @@ function Library:OpenDropdownModal(Dropdown)
         Size = UDim2.new(0, 0, 1, 0),
         Text = Dropdown.Text or "Select Options",
         TextColor3 = "FontColor",
-        TextSize = 14,
+        TextSize = 13,
         Font = Enum.Font.GothamBold,
         TextXAlignment = Enum.TextXAlignment.Left,
         ZIndex = 42,
@@ -3095,7 +3095,7 @@ function Library:OpenDropdownModal(Dropdown)
         local MultiBadge = New("Frame", {
             BackgroundColor3 = "AccentColor",
             BackgroundTransparency = 0.85,
-            Size = UDim2.fromOffset(76, 20),
+            Size = UDim2.fromOffset(72, 18),
             ZIndex = 42,
             Parent = HeaderLeft,
         })
@@ -3116,7 +3116,7 @@ function Library:OpenDropdownModal(Dropdown)
             Size = UDim2.fromScale(1, 1),
             Text = "Multi-Select",
             TextColor3 = "AccentColor",
-            TextSize = 10,
+            TextSize = 9.5,
             Font = Enum.Font.GothamBold,
             ZIndex = 43,
             Parent = MultiBadge,
@@ -3128,7 +3128,7 @@ function Library:OpenDropdownModal(Dropdown)
         BackgroundColor3 = "MainColor",
         BackgroundTransparency = 1,
         Position = UDim2.new(1, 0, 0.5, 0),
-        Size = UDim2.fromOffset(24, 24),
+        Size = UDim2.fromOffset(22, 22),
         Text = "",
         ZIndex = 42,
         Parent = HeaderFrame,
@@ -3148,7 +3148,7 @@ function Library:OpenDropdownModal(Dropdown)
             AnchorPoint = Vector2.new(0.5, 0.5),
             BackgroundTransparency = 1,
             Position = UDim2.fromScale(0.5, 0.5),
-            Size = UDim2.fromOffset(14, 14),
+            Size = UDim2.fromOffset(13, 13),
             ImageColor3 = "FontColor",
             ImageTransparency = 0.4,
             ZIndex = 43,
@@ -3175,7 +3175,7 @@ function Library:OpenDropdownModal(Dropdown)
     end)
 
     Library:MakeLine(Modal, {
-        Position = UDim2.fromOffset(0, 42),
+        Position = UDim2.fromOffset(0, 38),
         Size = UDim2.new(1, 0, 0, 1),
         ZIndex = 41,
     })
@@ -3183,15 +3183,15 @@ function Library:OpenDropdownModal(Dropdown)
     -- 2. Search Bar
     local SearchContainer = New("Frame", {
         BackgroundColor3 = "MainColor",
-        Position = UDim2.fromOffset(14, 48),
-        Size = UDim2.new(1, -28, 0, 32),
+        Position = UDim2.fromOffset(12, 44),
+        Size = UDim2.new(1, -24, 0, 28),
         ZIndex = 41,
         Parent = Modal,
     })
     table.insert(
         Library.Corners,
         New("UICorner", {
-            CornerRadius = UDim.new(0, 8),
+            CornerRadius = UDim.new(0, 6),
             Parent = SearchContainer,
         })
     )
@@ -3206,7 +3206,7 @@ function Library:OpenDropdownModal(Dropdown)
             AnchorPoint = Vector2.new(0, 0.5),
             BackgroundTransparency = 1,
             Position = UDim2.new(0, 8, 0.5, 0),
-            Size = UDim2.fromOffset(16, 16),
+            Size = UDim2.fromOffset(14, 14),
             ImageColor3 = "FontColor",
             ImageTransparency = 0.5,
             ZIndex = 42,
@@ -3219,11 +3219,11 @@ function Library:OpenDropdownModal(Dropdown)
         BackgroundTransparency = 1,
         ClearTextOnFocus = false,
         PlaceholderText = "Search options...",
-        Position = UDim2.fromOffset(30, 0),
-        Size = UDim2.new(1, -38, 1, 0),
+        Position = UDim2.fromOffset(28, 0),
+        Size = UDim2.new(1, -34, 1, 0),
         Text = "",
         TextColor3 = "FontColor",
-        TextSize = 13,
+        TextSize = 12,
         Font = Enum.Font.Code,
         TextXAlignment = Enum.TextXAlignment.Left,
         ZIndex = 42,
@@ -3245,15 +3245,15 @@ function Library:OpenDropdownModal(Dropdown)
         AutomaticCanvasSize = Enum.AutomaticSize.Y,
         ScrollBarThickness = 3,
         ScrollBarImageColor3 = "OutlineColor",
-        Position = UDim2.fromOffset(14, 88),
-        Size = UDim2.new(1, -28, 1, -98),
+        Position = UDim2.fromOffset(12, 78),
+        Size = UDim2.new(1, -24, 1, -86),
         ZIndex = 41,
         Parent = Modal,
     })
 
     New("UIGridLayout", {
-        CellPadding = UDim2.fromOffset(8, 8),
-        CellSize = UDim2.new(0.5, -4, 0, 36),
+        CellPadding = UDim2.fromOffset(6, 6),
+        CellSize = UDim2.new(0.5, -3, 0, 26),
         HorizontalAlignment = Enum.HorizontalAlignment.Left,
         SortOrder = Enum.SortOrder.LayoutOrder,
         Parent = GridScroll,
@@ -3280,11 +3280,14 @@ function Library:OpenDropdownModal(Dropdown)
                 Color = Selected and Library.Scheme.AccentColor or Library.Scheme.OutlineColor,
             }):Play()
             if Item.CheckIcon then
-                TweenService:Create(Item.CheckIcon, Library.TweenInfo, {
-                    ImageTransparency = Selected and 0 or 0.85,
-                    ImageColor3 = Selected and Library.Scheme.AccentColor or Library.Scheme.FontColor,
-                }):Play()
+                Item.CheckIcon.Visible = Selected
+                if Selected then
+                    Item.CheckIcon.ImageColor3 = Library.Scheme.AccentColor
+                end
             end
+            TweenService:Create(Item.Label, Library.TweenInfo, {
+                Position = Selected and UDim2.new(0, 22, 0.5, 0) or UDim2.new(0, 8, 0.5, 0),
+            }):Play()
             Item.Label.TextColor3 = Selected and Library.Scheme.AccentColor or Library.Scheme.FontColor
         end
     end
@@ -3309,7 +3312,7 @@ function Library:OpenDropdownModal(Dropdown)
         table.insert(
             Library.Corners,
             New("UICorner", {
-                CornerRadius = UDim.new(0, 6),
+                CornerRadius = UDim.new(0, 4),
                 Parent = Card,
             })
         )
@@ -3323,10 +3326,11 @@ function Library:OpenDropdownModal(Dropdown)
             CheckIconImg = New("ImageLabel", {
                 AnchorPoint = Vector2.new(0, 0.5),
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 8, 0.5, 0),
-                Size = UDim2.fromOffset(14, 14),
-                ImageColor3 = Selected and "AccentColor" or "FontColor",
-                ImageTransparency = Selected and 0 or 0.85,
+                Position = UDim2.new(0, 6, 0.5, 0),
+                Size = UDim2.fromOffset(12, 12),
+                ImageColor3 = "AccentColor",
+                ImageTransparency = 0,
+                Visible = Selected,
                 ZIndex = 43,
                 Parent = Card,
             })
@@ -3336,11 +3340,11 @@ function Library:OpenDropdownModal(Dropdown)
         local CardLabel = New("TextLabel", {
             AnchorPoint = Vector2.new(0, 0.5),
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, CheckCustomIcon and 26 or 10, 0.5, 0),
-            Size = UDim2.new(1, CheckCustomIcon and -34 or -20, 1, 0),
+            Position = Selected and UDim2.new(0, 22, 0.5, 0) or UDim2.new(0, 8, 0.5, 0),
+            Size = UDim2.new(1, -26, 1, 0),
             Text = DisplayText,
             TextColor3 = Selected and "AccentColor" or "FontColor",
-            TextSize = 13,
+            TextSize = 12,
             Font = Enum.Font.Code,
             TextTruncate = Enum.TextTruncate.AtEnd,
             TextXAlignment = Enum.TextXAlignment.Left,
