@@ -12176,6 +12176,9 @@ function Library:CreateWindow(WindowInfo)
                         Parent = GroupboxHolder,
                     })
                 )
+                New("UIListLayout", {
+                    Parent = GroupboxHolder,
+                })
                 Library:AddOutline(GroupboxHolder)
 
                 GroupboxTop = New("Frame", {
@@ -12194,70 +12197,101 @@ function Library:CreateWindow(WindowInfo)
 
                 local BoxIcon = Library:GetCustomIcon(Info.IconName)
                 if BoxIcon then
-                    local GroupboxIcon = New("ImageLabel", {
-                        BackgroundTransparency = 1,
+                    local GroupboxHeaderIcon = New("ImageLabel", {
+                        AnchorPoint = Vector2.new(0, 0.5),
                         ImageColor3 = BoxIcon.Custom and "WhiteColor" or "AccentColor",
-                        Size = UDim2.fromOffset(18, 18),
+                        Position = UDim2.fromScale(0, 0.5),
+                        Size = UDim2.fromOffset(22, 22),
                         Parent = GroupboxTop,
                     })
-                    Library:ApplyLucideIcon(GroupboxIcon, BoxIcon)
+                    Library:ApplyLucideIcon(GroupboxHeaderIcon, BoxIcon)
                 end
 
-                GroupboxLabel = New("TextLabel", {
+                local RightInset = if Info.DisableCollapsing ~= true then 22 else 0
+                local TextsFrame = New("Frame", {
+                    AutomaticSize = Enum.AutomaticSize.Y,
                     BackgroundTransparency = 1,
                     Position = UDim2.fromOffset(BoxIcon and 24 or 0, 0),
-                    Size = UDim2.new(1, -(BoxIcon and 48 or 24), 0, 18),
-                    Text = Info.Name,
-                    TextSize = 14,
-                    TextXAlignment = Enum.TextXAlignment.Left,
+                    Size = UDim2.new(1, -RightInset - (BoxIcon and 24 or 0), 0, 0),
                     Parent = GroupboxTop,
+                })
+                New("UIListLayout", {
+                    Parent = TextsFrame,
+                })
+                New("UIPadding", {
+                    PaddingBottom = UDim.new(0, 3),
+                    PaddingLeft = UDim.new(0, 6),
+                    PaddingRight = UDim.new(0, 6),
+                    PaddingTop = UDim.new(0, 3),
+                    Parent = TextsFrame,
+                })
+
+                GroupboxLabel = New("TextLabel", {
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.fromScale(1, 0),
+                    Text = Info.Name,
+                    TextSize = 15,
+                    TextWrapped = true,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    Parent = TextsFrame,
+                })
+                New("UIPadding", {
+                    PaddingBottom = UDim.new(0, 1),
+                    Parent = GroupboxLabel,
+                })
+
+                GroupboxDescription = New("TextLabel", {
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.fromScale(1, 0),
+                    Text = Info.Description or "",
+                    TextSize = 14,
+                    TextTransparency = 0.5,
+                    TextWrapped = true,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    Visible = (Info.Description ~= nil),
+                    Parent = TextsFrame,
                 })
 
                 GroupboxCollapseArrow = New("ImageButton", {
-                    AnchorPoint = Vector2.new(1, 0),
-                    BackgroundTransparency = 1,
-                    Position = UDim2.fromScale(1, 0),
-                    Size = UDim2.fromOffset(18, 18),
                     Visible = Info.DisableCollapsing ~= true,
+                    AnchorPoint = Vector2.new(1, 0.5),
+                    BackgroundTransparency = 1,
+                    ImageColor3 = "WhiteColor",
+                    Position = UDim2.fromScale(1, 0.5),
+                    Size = UDim2.fromOffset(22, 22),
                     Parent = GroupboxTop,
                 })
                 if ArrowIcon then
-                    Library:ApplyLucideIcon(GroupboxCollapseArrow, ArrowIcon)
-                end
-
-                if Info.Description then
-                    GroupboxDescription = New("TextLabel", {
-                        BackgroundTransparency = 1,
-                        Position = UDim2.fromOffset(BoxIcon and 24 or 0, 18),
-                        Size = UDim2.new(1, -(BoxIcon and 48 or 24), 0, 0),
-                        Text = Info.Description,
-                        TextSize = 13,
-                        TextTransparency = 0.5,
-                        TextWrapped = true,
-                        TextXAlignment = Enum.TextXAlignment.Left,
-                        Parent = GroupboxTop,
-                    })
+                    Library:ApplyLucideIcon(GroupboxCollapseArrow, ArrowIcon, 180)
                 end
 
                 GroupboxLine = Library:MakeLine(GroupboxHolder, {
-                    Position = UDim2.fromOffset(0, 0),
+                    LayoutOrder = 1,
                     Size = UDim2.new(1, 0, 0, 1),
                 })
 
-                GroupboxContainer = New("Frame", {
+                GroupboxContainer = New("ScrollingFrame", {
+                    AutomaticCanvasSize = Enum.AutomaticSize.Y,
                     BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    CanvasSize = UDim2.fromScale(0, 0),
+                    LayoutOrder = 2,
+                    ScrollBarThickness = 0,
                     Size = UDim2.fromScale(1, 0),
                     Parent = GroupboxHolder,
                 })
+
                 GroupboxList = New("UIListLayout", {
-                    Padding = UDim.new(0, 6),
+                    Padding = UDim.new(0, 8),
                     Parent = GroupboxContainer,
                 })
                 New("UIPadding", {
-                    PaddingBottom = UDim.new(0, 6),
-                    PaddingLeft = UDim.new(0, 6),
-                    PaddingRight = UDim.new(0, 6),
-                    PaddingTop = UDim.new(0, 6),
+                    PaddingBottom = UDim.new(0, 7),
+                    PaddingLeft = UDim.new(0, 7),
+                    PaddingRight = UDim.new(0, 7),
+                    PaddingTop = UDim.new(0, 7),
                     Parent = GroupboxContainer,
                 })
             end
