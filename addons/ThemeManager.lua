@@ -870,7 +870,8 @@ function ThemeManager:CreateThemeManager(Themesbox: any)
                 if Value == "Image" then
                     ThemeManager.Library.Window:SetParticleImage("icon.png")
                 elseif Value == "Emoji" then
-                    ThemeManager.Library.Window:SetParticleEmoji("✨")
+                    local currentEmoji = (ThemeManager.Options and ThemeManager.Options.ThemeManager_ParticleEmoji and ThemeManager.Options.ThemeManager_ParticleEmoji.Value) or "✨"
+                    ThemeManager.Library.Window:SetParticleEmoji(currentEmoji)
                 else
                     ThemeManager.Library.Window:SetParticleType("Dot")
                 end

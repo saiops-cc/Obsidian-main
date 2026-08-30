@@ -880,7 +880,8 @@ MenuGroup:AddDropdown("ParticleTypeDropdown", {
 		if value == "Image" then
 			Window:SetParticleImage("icon.png")
 		elseif value == "Emoji" then
-			Window:SetParticleEmoji("✨")
+			local currentEmoji = (Options.ParticleEmojiDropdown and Options.ParticleEmojiDropdown.Value) or "✨"
+			Window:SetParticleEmoji(currentEmoji)
 		else
 			Window:SetParticleType("Dot")
 		end

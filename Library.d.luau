@@ -1234,6 +1234,11 @@ export type Library = {
     SetNotifySide: (self: Library, Side: "Left" | "Right") -> (),
     SetTransparency: (self: Library, Transparency: number) -> (),
     SetParticles: (self: Library, Enabled: boolean) -> (),
+    SetParticleType: (self: Library, Type: "Dot" | "Image" | "Emoji" | string) -> (),
+    SetParticleImage: (self: Library, Image: string) -> (),
+    SetParticleEmoji: (self: Library, Emoji: string | { string }) -> (),
+    SetParticleCount: (self: Library, Count: number) -> (),
+    SetParticleSpeed: (self: Library, Speed: number) -> (),
     Transparency: number?,
     UpdateNotificationPositions: (self: Library, Snap: boolean?) -> (),
     Notify: (
