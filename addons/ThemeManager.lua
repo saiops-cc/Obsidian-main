@@ -63,7 +63,7 @@ local ThemeManager = {
         },
         ["Default"] = {
             2,
-            { FontColor = "ffffff", MainColor = "191919", AccentColor = "7d55ff", BackgroundColor = "0f0f0f", OutlineColor = "282828", BackgroundImage = "" },
+            { FontColor = "edf6f9", MainColor = "3b0b5d", AccentColor = "48bfe3", BackgroundColor = "280041", OutlineColor = "000000", BackgroundImage = "" },
         },
         ["BBot"] = {
             2,
