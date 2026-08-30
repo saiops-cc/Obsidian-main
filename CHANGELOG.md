@@ -2,8 +2,9 @@
 
 ```diff
 [features]
-+ Window Transparency settings and API (WindowInfo.Transparency, Window:SetTransparency, Window:GetTransparency, Library:SetTransparency)
-+ Ultra-lightweight, zero-lag animated particle background with ambient floating glowing nodes and theme-color sync (WindowInfo.Particles, Window:SetParticles, Window:SetParticleSpeed, Window:SetParticleCount, Window:SetParticleColor)
++ Full UI Transparency settings across Window, Tabs, Container, Groupboxes, and Tabboxes (Window:SetTransparency, Window:GetTransparency, Library:SetTransparency)
++ Customizable Animated Particle Background with Custom Images (e.g. icon.png), Emojis (✨, ⭐, 🌸, etc.), and Dots (Window:SetParticleType, Window:SetParticleImage, Window:SetParticleEmoji)
++ Particle Density configuration slider (from 5 up to 150 particles) with zero-lag scale math (Window:SetParticleCount, WindowInfo.ParticleCount)
 + Tab menu hide/open toggle button on left navbar and API methods (Window:ToggleSidebar, Window:HideSidebar, Window:ShowSidebar, Window:IsSidebarHidden, Window:ToggleTabs)
 + Close button in navbar (replacing the static move icon) with confirmation dialog prompt to safely unhook and unload the script
 + Slider with numeric text input option beside the slider (Groupbox:AddSliderInput, Groupbox:AddInputSlider, Groupbox:AddSliderWithInput, or SliderInfo.Input = true)

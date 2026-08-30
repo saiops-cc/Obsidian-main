@@ -231,6 +231,7 @@ local Library = {
     --// Corners \\--
     Corners = {},
     SpecificCorners = {},
+    GroupboxHolders = {},
 
     --// Animations \\--
     TweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
@@ -11368,6 +11369,15 @@ function Library:CreateWindow(WindowInfo)
             })
         )
 
+        local ParticleType = WindowInfo.ParticleType or (WindowInfo.ParticleEmoji and "Emoji") or (WindowInfo.ParticleImage and "Image") or "Dot"
+        local ParticleImage = WindowInfo.ParticleImage or "icon.png"
+        local ParticleEmoji = WindowInfo.ParticleEmoji or "✨"
+        local ParticlesEnabled = WindowInfo.Particles ~= false
+        local ParticleSpeed = math.max(0.1, WindowInfo.ParticleSpeed or 1)
+        local ParticleCount = math.clamp(WindowInfo.ParticleCount or 35, 5, 150)
+        local ParticleColorOverride = WindowInfo.ParticleColor
+        local ParticlePool = {}
+
         local function GetParticleColor()
             if ParticleColorOverride then
                 if typeof(ParticleColorOverride) == "string" then
@@ -11379,33 +11389,98 @@ function Library:CreateWindow(WindowInfo)
             return Library.Scheme.AccentColor
         end
 
+        local function GetRandomEmoji()
+            if typeof(ParticleEmoji) == "table" and #ParticleEmoji > 0 then
+                return ParticleEmoji[math.random(1, #ParticleEmoji)]
+            elseif typeof(ParticleEmoji) == "string" and #ParticleEmoji > 0 then
+                return ParticleEmoji
+            end
+            return "✨"
+        end
+
         local function CreateParticle()
-            local SizePx = math.random(3, 5)
-            local Dot = New("Frame", {
-                AnchorPoint = Vector2.new(0.5, 0.5),
-                BackgroundColor3 = GetParticleColor,
-                BorderSizePixel = 0,
-                Size = UDim2.fromOffset(SizePx, SizePx),
-                Position = UDim2.new(math.random(), 0, math.random(), 0),
-                BackgroundTransparency = math.random(40, 80) / 100,
-                ZIndex = 1,
-                Parent = ParticleContainer,
-            })
-            New("UICorner", {
-                CornerRadius = UDim.new(1, 0),
-                Parent = Dot,
-            })
+            local GuiElement
+            local SizePx = 4
+            local RotSpeed = 0
+            local Rotation = 0
+
+            if ParticleType == "Emoji" then
+                SizePx = math.random(14, 20)
+                RotSpeed = math.random(-35, 35)
+                Rotation = math.random(0, 360)
+                local EmojiText = GetRandomEmoji()
+
+                GuiElement = New("TextLabel", {
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    Size = UDim2.fromOffset(SizePx, SizePx),
+                    Position = UDim2.new(math.random(), 0, math.random(), 0),
+                    Text = EmojiText,
+                    TextScaled = true,
+                    Rotation = Rotation,
+                    TextTransparency = math.random(30, 75) / 100,
+                    ZIndex = 1,
+                    Parent = ParticleContainer,
+                })
+            elseif ParticleType == "Image" then
+                SizePx = math.random(12, 18)
+                RotSpeed = math.random(-30, 30)
+                Rotation = math.random(0, 360)
+
+                local ImgLabel = New("ImageLabel", {
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    Size = UDim2.fromOffset(SizePx, SizePx),
+                    Position = UDim2.new(math.random(), 0, math.random(), 0),
+                    ImageColor3 = GetParticleColor,
+                    ImageTransparency = math.random(30, 75) / 100,
+                    Rotation = Rotation,
+                    ZIndex = 1,
+                    Parent = ParticleContainer,
+                })
+
+                local ParsedIcon = Library:GetCustomIcon(ParticleImage)
+                if ParsedIcon then
+                    Library:ApplyLucideIcon(ImgLabel, ParsedIcon)
+                else
+                    ImgLabel.Image = ParticleImage
+                end
+
+                GuiElement = ImgLabel
+            else -- "Dot"
+                SizePx = math.random(3, 6)
+                local Dot = New("Frame", {
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    BackgroundColor3 = GetParticleColor,
+                    BorderSizePixel = 0,
+                    Size = UDim2.fromOffset(SizePx, SizePx),
+                    Position = UDim2.new(math.random(), 0, math.random(), 0),
+                    BackgroundTransparency = math.random(40, 80) / 100,
+                    ZIndex = 1,
+                    Parent = ParticleContainer,
+                })
+                New("UICorner", {
+                    CornerRadius = UDim.new(1, 0),
+                    Parent = Dot,
+                })
+                GuiElement = Dot
+            end
 
             local Particle = {
-                gui = Dot,
+                gui = GuiElement,
+                pType = ParticleType,
                 x = math.random(),
                 y = math.random(),
                 vx = (math.random(-15, 15) / 1000) * 0.05,
                 vy = -(math.random(10, 30) / 1000) * 0.05,
                 phase = math.random() * math.pi * 2,
                 pulseSpeed = math.random(15, 30) / 10,
-                baseAlpha = math.random(40, 75) / 100,
+                baseAlpha = math.random(35, 75) / 100,
                 alphaRange = math.random(15, 25) / 100,
+                rotation = Rotation,
+                rotSpeed = RotSpeed,
                 size = SizePx,
             }
             table.insert(ParticlePool, Particle)
@@ -11442,6 +11517,11 @@ function Library:CreateWindow(WindowInfo)
                 p.y = p.y + (p.vy * speedMult * clampedDt * 60)
                 p.phase = p.phase + (p.pulseSpeed * clampedDt)
 
+                if p.rotSpeed ~= 0 then
+                    p.rotation = (p.rotation + p.rotSpeed * clampedDt) % 360
+                    p.gui.Rotation = p.rotation
+                end
+
                 -- Wrap boundaries smoothly
                 if p.y < -0.02 then
                     p.y = 1.02
@@ -11458,8 +11538,15 @@ function Library:CreateWindow(WindowInfo)
                 end
 
                 p.gui.Position = UDim2.new(p.x, 0, p.y, 0)
-                local currentAlpha = math.clamp(p.baseAlpha + math.sin(p.phase) * p.alphaRange, 0.25, 0.95)
-                p.gui.BackgroundTransparency = currentAlpha
+                local currentAlpha = math.clamp(p.baseAlpha + math.sin(p.phase) * p.alphaRange, 0.15, 0.95)
+
+                if p.pType == "Emoji" then
+                    p.gui.TextTransparency = currentAlpha
+                elseif p.pType == "Image" then
+                    p.gui.ImageTransparency = currentAlpha
+                else
+                    p.gui.BackgroundTransparency = currentAlpha
+                end
             end
         end))
 
@@ -11481,6 +11568,11 @@ function Library:CreateWindow(WindowInfo)
             end
             if BottomBackground then
                 BottomBackground.BackgroundTransparency = math.clamp(CurrentTransparency, 0, 1)
+            end
+            for _, Holder in ipairs(Library.GroupboxHolders) do
+                if Holder and Holder.Parent then
+                    Holder.BackgroundTransparency = CurrentTransparency
+                end
             end
         end
 
@@ -12510,8 +12602,33 @@ function Library:CreateWindow(WindowInfo)
 
     function Window:SetParticleCount(Count: number)
         assert(typeof(Count) == "number", "Expected number for particle count got: " .. typeof(Count))
-        ParticleCount = math.clamp(math.floor(Count), 5, 50)
+        ParticleCount = math.clamp(math.floor(Count), 5, 150)
         WindowInfo.ParticleCount = ParticleCount
+        PopulateParticles()
+    end
+
+    function Window:SetParticleType(Type: "Dot" | "Image" | "Emoji" | string)
+        if Type == "Emoji" or Type == "Image" or Type == "Dot" then
+            ParticleType = Type
+            WindowInfo.ParticleType = ParticleType
+            PopulateParticles()
+        end
+    end
+
+    function Window:SetParticleImage(Image: string)
+        assert(typeof(Image) == "string", "Expected string for particle image")
+        ParticleImage = Image
+        WindowInfo.ParticleImage = Image
+        ParticleType = "Image"
+        WindowInfo.ParticleType = "Image"
+        PopulateParticles()
+    end
+
+    function Window:SetParticleEmoji(Emoji: string | { string })
+        ParticleEmoji = Emoji
+        WindowInfo.ParticleEmoji = Emoji
+        ParticleType = "Emoji"
+        WindowInfo.ParticleType = "Emoji"
         PopulateParticles()
     end
 
@@ -14748,9 +14865,11 @@ function Library:CreateWindow(WindowInfo)
             do
                 TabboxHolder = New("Frame", {
                     BackgroundColor3 = "BackgroundColor",
+                    BackgroundTransparency = Library.Transparency or 0,
                     Size = UDim2.fromScale(1, 0),
                     Parent = BoxHolder,
                 })
+                table.insert(Library.GroupboxHolders, TabboxHolder)
                 table.insert(
                     Library.Corners,
                     New("UICorner", {
@@ -15129,9 +15248,11 @@ function Library:CreateWindow(WindowInfo)
             do
                 GroupboxHolder = New("Frame", {
                     BackgroundColor3 = "BackgroundColor",
+                    BackgroundTransparency = Library.Transparency or 0,
                     Size = UDim2.fromScale(1, 0),
                     Parent = BoxHolder,
                 })
+                table.insert(Library.GroupboxHolders, GroupboxHolder)
                 table.insert(
                     Library.Corners,
                     New("UICorner", {

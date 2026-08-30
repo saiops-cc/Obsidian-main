@@ -861,6 +861,48 @@ function ThemeManager:CreateThemeManager(Themesbox: any)
         end,
     })
 
+    Themesbox:AddDropdown("ThemeManager_ParticleType", {
+        Values = { "Dot", "Image", "Emoji" },
+        Default = "Dot",
+        Text = "Particle Type",
+        Callback = function(Value)
+            if ThemeManager.Library and ThemeManager.Library.Window and ThemeManager.Library.Window.SetParticleType then
+                if Value == "Image" then
+                    ThemeManager.Library.Window:SetParticleImage("icon.png")
+                elseif Value == "Emoji" then
+                    ThemeManager.Library.Window:SetParticleEmoji("✨")
+                else
+                    ThemeManager.Library.Window:SetParticleType("Dot")
+                end
+            end
+        end,
+    })
+
+    Themesbox:AddDropdown("ThemeManager_ParticleEmoji", {
+        Values = { "✨", "⭐", "🌸", "❄️", "🔥", "💎", "👑" },
+        Default = "✨",
+        Text = "Particle Emoji",
+        Callback = function(Value)
+            if ThemeManager.Library and ThemeManager.Library.Window and ThemeManager.Library.Window.SetParticleEmoji then
+                ThemeManager.Library.Window:SetParticleEmoji(Value)
+            end
+        end,
+    })
+
+    Themesbox:AddSliderInput("ThemeManager_ParticleCount", {
+        Text = "Particle Density",
+        Default = 35,
+        Min = 5,
+        Max = 150,
+        Rounding = 0,
+        Compact = true,
+        Callback = function(Value)
+            if ThemeManager.Library and ThemeManager.Library.Window and ThemeManager.Library.Window.SetParticleCount then
+                ThemeManager.Library.Window:SetParticleCount(Value)
+            end
+        end,
+    })
+
     Themesbox:AddSliderInput("ThemeManager_ParticleSpeed", {
         Text = "Particle Speed",
         Default = 1,

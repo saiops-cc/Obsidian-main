@@ -872,6 +872,41 @@ MenuGroup:AddToggle("WindowParticles", {
 	end
 })
 
+MenuGroup:AddDropdown("ParticleTypeDropdown", {
+	Values = { "Dot", "Image", "Emoji" },
+	Default = "Dot",
+	Text = "Particle Type",
+	Callback = function(value)
+		if value == "Image" then
+			Window:SetParticleImage("icon.png")
+		elseif value == "Emoji" then
+			Window:SetParticleEmoji("✨")
+		else
+			Window:SetParticleType("Dot")
+		end
+	end,
+})
+
+MenuGroup:AddDropdown("ParticleEmojiDropdown", {
+	Values = { "✨", "⭐", "🌸", "❄️", "🔥", "💎", "👑" },
+	Default = "✨",
+	Text = "Particle Emoji",
+	Callback = function(value)
+		Window:SetParticleEmoji(value)
+	end,
+})
+
+MenuGroup:AddSliderInput("ParticleDensity", {
+	Text = "Particle Density",
+	Default = 35,
+	Min = 5,
+	Max = 150,
+	Rounding = 0,
+	Callback = function(value)
+		Window:SetParticleCount(value)
+	end
+})
+
 MenuGroup:AddSliderInput("ParticleSpeed", {
 	Text = "Particle Speed",
 	Default = 1,
