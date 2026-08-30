@@ -10828,6 +10828,7 @@ function Library:SetNotifySide(Side: string)
 
     if Library.UpdateNotificationPositions then
         Library:UpdateNotificationPositions(true)
+    end
 end
 
 function Library:SetTransparency(Transparency: number)
