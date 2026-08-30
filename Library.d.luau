@@ -41,6 +41,7 @@ export type Tooltip = {
     Disabled: boolean,
     Hovering: boolean,
     Signals: { [number]: RBXScriptConnection },
+    SetText: (self: Tooltip, InfoStr: string?, DisabledInfoStr: string?) -> (),
     Destroy: (self: Tooltip) -> (),
 }
 
@@ -977,6 +978,15 @@ export type Window = {
     GetSidebarWidth: (self: Window) -> number,
     SetSidebarWidth: (self: Window, Width: number) -> (),
     SetCompact: (self: Window, State: boolean) -> (),
+    IsSidebarHidden: (self: Window) -> boolean,
+    SetSidebarHidden: (self: Window, Hidden: boolean) -> (),
+    ToggleSidebar: (self: Window) -> (),
+    HideSidebar: (self: Window) -> (),
+    ShowSidebar: (self: Window) -> (),
+    IsTabsHidden: (self: Window) -> boolean,
+    ToggleTabs: (self: Window) -> (),
+    HideTabs: (self: Window) -> (),
+    ShowTabs: (self: Window) -> (),
     ShowTabInfo: (self: Window, Name: string, Description: string) -> (),
     HideTabInfo: (self: Window) -> (),
     AddTab: (

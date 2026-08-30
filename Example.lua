@@ -861,6 +861,10 @@ MenuGroup:AddButton("Toggle Minimize", function()
 	Window:ToggleMinimize()
 end)
 
+MenuGroup:AddButton("Toggle Tabs Menu", function()
+	Window:ToggleTabs()
+end)
+
 MenuGroup:AddButton("Send Test Notification", function()
 	Library:Notify({
 		Title = "Test Alert",

@@ -4262,6 +4262,18 @@ function Library:AddTooltip(InfoStr: string, DisabledInfoStr: string, HoverInsta
         CurrentHoverInstance = nil
     end))
 
+    function TooltipTable:SetText(NewInfoStr: string?, NewDisabledInfoStr: string?)
+        if typeof(NewInfoStr) == "string" then
+            InfoStr = NewInfoStr
+        end
+        if typeof(NewDisabledInfoStr) == "string" then
+            DisabledInfoStr = NewDisabledInfoStr
+        end
+        if CurrentHoverInstance == HoverInstance and TooltipLabel.Visible then
+            TooltipLabel.Text = TooltipTable.Disabled and DisabledInfoStr or InfoStr
+        end
+    end
+
     function TooltipTable:Destroy()
         for Index = #TooltipTable.Signals, 1, -1 do
             local Connection = table.remove(TooltipTable.Signals, Index)
@@ -11239,6 +11251,10 @@ function Library:CreateWindow(WindowInfo)
     local BottomBar
     local FooterLabel
     local TopBar
+    local ToggleSidebarButton
+    local ToggleSidebarIconImage
+    local ToggleSidebarTooltip
+    local SidebarHidden = false
     local NotifHistoryButton
     local NotifBadge
     local MinimizeButton
@@ -11368,15 +11384,75 @@ function Library:CreateWindow(WindowInfo)
         })
         Library:MakeDraggable(MainFrame, TopBar, false, true, WindowSnapConfig)
 
+        --// Toggle Sidebar / Tabs Button \\--
+        ToggleSidebarButton = New("TextButton", {
+            BackgroundColor3 = "MainColor",
+            BackgroundTransparency = 1,
+            Position = UDim2.fromOffset(8, 11),
+            Size = UDim2.fromOffset(26, 26),
+            Text = "",
+            ZIndex = 11,
+            Parent = TopBar,
+        })
+        table.insert(
+            Library.Corners,
+            New("UICorner", {
+                CornerRadius = UDim.new(0, math.max(4, math.floor(WindowInfo.CornerRadius / 2))),
+                Parent = ToggleSidebarButton,
+            })
+        )
+        ToggleSidebarTooltip = Library:AddTooltip("Hide Tab Menu", "", ToggleSidebarButton)
+
+        local SidebarIcon = Library:GetCustomIcon("panel-left-close") or Library:GetCustomIcon("panel-left") or Library:GetCustomIcon("sidebar") or Library:GetCustomIcon("menu")
+        if SidebarIcon then
+            ToggleSidebarIconImage = New("ImageLabel", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                BackgroundTransparency = 1,
+                Position = UDim2.fromScale(0.5, 0.5),
+                ImageColor3 = "FontColor",
+                ImageTransparency = 0.4,
+                Size = UDim2.fromOffset(15, 15),
+                ZIndex = 12,
+                Parent = ToggleSidebarButton,
+            })
+            Library:ApplyLucideIcon(ToggleSidebarIconImage, SidebarIcon)
+        end
+
+        Library:GiveSignal(ToggleSidebarButton.MouseEnter:Connect(function()
+            TweenService:Create(ToggleSidebarButton, Library.TweenInfo, {
+                BackgroundTransparency = 0.85,
+            }):Play()
+            if ToggleSidebarIconImage then
+                TweenService:Create(ToggleSidebarIconImage, Library.TweenInfo, {
+                    ImageTransparency = 0,
+                    ImageColor3 = Library.Scheme.AccentColor,
+                }):Play()
+            end
+        end))
+
+        Library:GiveSignal(ToggleSidebarButton.MouseLeave:Connect(function()
+            TweenService:Create(ToggleSidebarButton, Library.TweenInfo, {
+                BackgroundTransparency = 1,
+            }):Play()
+            if ToggleSidebarIconImage then
+                TweenService:Create(ToggleSidebarIconImage, Library.TweenInfo, {
+                    ImageTransparency = 0.4,
+                    ImageColor3 = Library.Scheme.FontColor,
+                }):Play()
+            end
+        end))
+
         --// Title \\--
         TitleHolder = New("Frame", {
             BackgroundTransparency = 1,
-            Size = UDim2.new(0, InitialLeftWidth, 1, 0),
+            Position = UDim2.fromOffset(38, 0),
+            Size = UDim2.new(0, math.max(0, InitialLeftWidth - 38), 1, 0),
+            ClipsDescendants = true,
             Parent = TopBar,
         })
         New("UIListLayout", {
             FillDirection = Enum.FillDirection.Horizontal,
-            HorizontalAlignment = Enum.HorizontalAlignment.Center,
+            HorizontalAlignment = Enum.HorizontalAlignment.Left,
             VerticalAlignment = Enum.VerticalAlignment.Center,
             Padding = UDim.new(0, 6),
             Parent = TitleHolder,
@@ -11693,16 +11769,90 @@ function Library:CreateWindow(WindowInfo)
             end))
         end
 
-        if MoveIcon then
-            local MoveIconImage = New("ImageLabel", {
-                ImageColor3 = "OutlineColor",
-                Size = UDim2.fromOffset(26, 26),
-                BackgroundTransparency = 1,
-                ZIndex = 11,
-                Parent = TopBarActions,
+        local CloseButton = New("TextButton", {
+            BackgroundColor3 = "MainColor",
+            BackgroundTransparency = 1,
+            Size = UDim2.fromOffset(26, 26),
+            Text = "",
+            ZIndex = 11,
+            Parent = TopBarActions,
+        })
+        table.insert(
+            Library.Corners,
+            New("UICorner", {
+                CornerRadius = UDim.new(0, math.max(4, math.floor(WindowInfo.CornerRadius / 2))),
+                Parent = CloseButton,
             })
-            Library:ApplyLucideIcon(MoveIconImage, MoveIcon)
+        )
+        Library:AddTooltip("Close Script", "", CloseButton)
+
+        local CloseIcon = Library:GetCustomIcon("x") or Library:GetCustomIcon("x-circle")
+        local CloseIconImage
+        if CloseIcon then
+            CloseIconImage = New("ImageLabel", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                BackgroundTransparency = 1,
+                Position = UDim2.fromScale(0.5, 0.5),
+                ImageColor3 = "FontColor",
+                ImageTransparency = 0.4,
+                Size = UDim2.fromOffset(15, 15),
+                ZIndex = 12,
+                Parent = CloseButton,
+            })
+            Library:ApplyLucideIcon(CloseIconImage, CloseIcon)
         end
+
+        Library:GiveSignal(CloseButton.MouseEnter:Connect(function()
+            TweenService:Create(CloseButton, Library.TweenInfo, {
+                BackgroundTransparency = 0.85,
+            }):Play()
+            if CloseIconImage then
+                TweenService:Create(CloseIconImage, Library.TweenInfo, {
+                    ImageTransparency = 0,
+                    ImageColor3 = Color3.fromRGB(248, 113, 113),
+                }):Play()
+            end
+        end))
+
+        Library:GiveSignal(CloseButton.MouseLeave:Connect(function()
+            TweenService:Create(CloseButton, Library.TweenInfo, {
+                BackgroundTransparency = 1,
+            }):Play()
+            if CloseIconImage then
+                TweenService:Create(CloseIconImage, Library.TweenInfo, {
+                    ImageTransparency = 0.4,
+                    ImageColor3 = Library.Scheme.FontColor,
+                }):Play()
+            end
+        end))
+
+        Library:GiveSignal(CloseButton.MouseButton1Click:Connect(function()
+            if Library.Dialogues and Library.Dialogues["CloseConfirmDialog"] then
+                return
+            end
+
+            Window:AddDialog("CloseConfirmDialog", {
+                Title = "Close Script",
+                Description = "Are you sure you want to close the script? This will unhook the script.",
+                Icon = "alert-triangle",
+                AutoDismiss = true,
+                OutsideClickDismiss = true,
+                FooterButtons = {
+                    {
+                        Title = "No",
+                        Variant = "Secondary",
+                        Callback = function() end,
+                    },
+                    {
+                        Title = "Yes",
+                        Variant = "Destructive",
+                        Callback = function()
+                            Library:Unload()
+                        end,
+                    },
+                },
+            })
+        end))
 
         --// Top Right Bar \\--
         RightWrapper = New("Frame", {
@@ -12314,11 +12464,14 @@ function Library:CreateWindow(WindowInfo)
     end
 
     function Window:SetSidebarWidth(Width)
+        if SidebarHidden then
+            return
+        end
         Width = math.clamp(Width, 48, MainFrame.Size.X.Offset - WindowInfo.MinContainerWidth - 1)
 
         DividerLine.Position = UDim2.fromOffset(Width, 0)
 
-        TitleHolder.Size = UDim2.new(0, Width, 1, 0)
+        TitleHolder.Size = UDim2.new(0, math.max(0, Width - 38), 1, 0)
         RightWrapper.Size = UDim2.new(1, -Width - (WindowInfo.Minimizable ~= false and 134 or 104) - 1, 1, -16)
         Tabs.Size = UDim2.new(0, Width, 1, -70)
         Container.Size = UDim2.new(1, -Width - 1, 1, -70)
@@ -12330,6 +12483,83 @@ function Library:CreateWindow(WindowInfo)
             LastExpandedWidth = Width
         end
     end
+
+    function Window:IsSidebarHidden()
+        return SidebarHidden
+    end
+
+    function Window:SetSidebarHidden(Hidden: boolean)
+        if SidebarHidden == Hidden then
+            return
+        end
+        SidebarHidden = Hidden
+
+        if SidebarHidden then
+            if not IsCompact and Tabs.Size.X.Offset > 0 then
+                LastExpandedWidth = Tabs.Size.X.Offset
+            end
+
+            Tabs.Visible = false
+            DividerLine.Visible = false
+            TitleHolder.Visible = false
+
+            Tabs.Size = UDim2.new(0, 0, 1, -70)
+            Container.Size = UDim2.new(1, 0, 1, -70)
+            RightWrapper.Size = UDim2.new(1, -38 - (WindowInfo.Minimizable ~= false and 134 or 104) - 1, 1, -16)
+
+            if ToggleSidebarIconImage then
+                local OpenIcon = Library:GetCustomIcon("panel-left") or Library:GetCustomIcon("menu") or Library:GetCustomIcon("sidebar")
+                if OpenIcon then
+                    Library:ApplyLucideIcon(ToggleSidebarIconImage, OpenIcon)
+                end
+            end
+            if ToggleSidebarTooltip then
+                ToggleSidebarTooltip:SetText("Show Tab Menu")
+            end
+        else
+            local TargetWidth = math.max(InitialLeftWidth, LastExpandedWidth)
+            Tabs.Visible = true
+            DividerLine.Visible = true
+            TitleHolder.Visible = true
+
+            DividerLine.Position = UDim2.fromOffset(TargetWidth, 0)
+            TitleHolder.Size = UDim2.new(0, math.max(0, TargetWidth - 38), 1, 0)
+            Tabs.Size = UDim2.new(0, TargetWidth, 1, -70)
+            Container.Size = UDim2.new(1, -TargetWidth - 1, 1, -70)
+            RightWrapper.Size = UDim2.new(1, -TargetWidth - (WindowInfo.Minimizable ~= false and 134 or 104) - 1, 1, -16)
+
+            if ToggleSidebarIconImage then
+                local CloseIcon = Library:GetCustomIcon("panel-left-close") or Library:GetCustomIcon("panel-left") or Library:GetCustomIcon("sidebar") or Library:GetCustomIcon("menu")
+                if CloseIcon then
+                    Library:ApplyLucideIcon(ToggleSidebarIconImage, CloseIcon)
+                end
+            end
+            if ToggleSidebarTooltip then
+                ToggleSidebarTooltip:SetText("Hide Tab Menu")
+            end
+        end
+
+        for _, Tab in Library.Tabs do
+            Tab:Resize(true)
+        end
+    end
+
+    function Window:ToggleSidebar()
+        Window:SetSidebarHidden(not SidebarHidden)
+    end
+
+    function Window:HideSidebar()
+        Window:SetSidebarHidden(true)
+    end
+
+    function Window:ShowSidebar()
+        Window:SetSidebarHidden(false)
+    end
+
+    Window.ToggleTabs = Window.ToggleSidebar
+    Window.HideTabs = Window.HideSidebar
+    Window.ShowTabs = Window.ShowSidebar
+    Window.IsTabsHidden = Window.IsSidebarHidden
 
     --// Notification History Popover \\--
     local NotifHistoryPopover = New("Frame", {
@@ -13671,9 +13901,10 @@ function Library:CreateWindow(WindowInfo)
             )
             MainFrame.Visible = true
 
-            if Tabs then Tabs.Visible = true end
+            if Tabs then Tabs.Visible = not SidebarHidden end
             if Container then Container.Visible = true end
-            if DividerLine then DividerLine.Visible = true end
+            if DividerLine then DividerLine.Visible = not SidebarHidden end
+            if TitleHolder then TitleHolder.Visible = not SidebarHidden end
             if BottomBackground then BottomBackground.Visible = true end
             if BottomBar then BottomBar.Visible = true end
             if ResizeButton and WindowInfo.Resizable then
