@@ -11232,6 +11232,7 @@ function Library:CreateWindow(WindowInfo)
     Library.TabSwipeFrom = WindowInfo.TabSwipeFrom or "right"
 
     local IsDefaultSearchbarSize = WindowInfo.SearchbarSize == UDim2.fromScale(1, 1)
+    local Window = {}
     local MainFrame
     local DividerLine
     local TitleHolder
@@ -12208,7 +12209,6 @@ function Library:CreateWindow(WindowInfo)
     end
 
     --// Window Table \\--
-    local Window = {}
     local Fading = false
 
     local function SetUICorner(UICorner, Corner, HalfValue)
