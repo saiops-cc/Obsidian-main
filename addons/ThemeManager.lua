@@ -50,7 +50,7 @@ local ThemeManager = {
     Folder = "ObsidianLibSettings",
 
     AppliedToTab = false,
-    DefaultThemeName = nil,
+    DefaultThemeName = NeonEdge,
 
     --// Accessibility: contrast warning state
     ContrastLabel = nil,
@@ -467,7 +467,7 @@ function ThemeManager:SetDefaultTheme(Theme: any)
     
     else
         LibraryScheme.Font = Font.fromEnum(Enum.Font.Code)
-        FinalTheme.FontFace = "Code"
+        FinalTheme.FontFace = "RobotoMono"
     end
 
     --// Default Scheme Colors
@@ -892,7 +892,7 @@ function ThemeManager:CreateThemeManager(Themesbox: any)
 
     Themesbox:AddSliderInput("ThemeManager_ParticleCount", {
         Text = "Particle Density",
-        Default = 35,
+        Default = 60,
         Min = 5,
         Max = 150,
         Rounding = 0,
@@ -906,7 +906,7 @@ function ThemeManager:CreateThemeManager(Themesbox: any)
 
     Themesbox:AddSliderInput("ThemeManager_ParticleSpeed", {
         Text = "Particle Speed",
-        Default = 1,
+        Default = 0.5,
         Min = 0.1,
         Max = 3,
         Rounding = 1,
