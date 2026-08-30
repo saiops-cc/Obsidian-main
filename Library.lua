@@ -11233,6 +11233,7 @@ function Library:CreateWindow(WindowInfo)
 
     local IsDefaultSearchbarSize = WindowInfo.SearchbarSize == UDim2.fromScale(1, 1)
     local Window = {}
+    Library.Window = Window
     local MainFrame
     local DividerLine
     local TitleHolder
