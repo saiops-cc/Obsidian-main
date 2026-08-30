@@ -13745,7 +13745,7 @@ function Library:CreateWindow(WindowInfo)
         })
     )
     Library:AddOutline(FloatingTabWidget)
-    Library:MakeDraggable(FloatingTabWidget, FloatingTabWidget, false, true, WindowSnapConfig)
+    Library:MakeDraggable(FloatingTabWidget, FloatingTabWidget, true, false, WindowSnapConfig)
 
     New("UIPadding", {
         PaddingBottom = UDim.new(0, 8),
@@ -13781,6 +13781,7 @@ function Library:CreateWindow(WindowInfo)
     )
     Library:AddOutline(FloatBrandCard)
     Library:AddTooltip("SAIOPS HUB", "", FloatBrandCard)
+    Library:MakeDraggable(FloatingTabWidget, FloatBrandCard, true, false, WindowSnapConfig)
 
     FloatBrandLayout = New("UIListLayout", {
         FillDirection = Enum.FillDirection.Vertical,
@@ -13842,6 +13843,7 @@ function Library:CreateWindow(WindowInfo)
         Parent = FloatAvatarCard,
     })
     Library:AddTooltip(string.format("Player: %s (@%s)", LocalPlayer.DisplayName, LocalPlayer.Name), "", FloatAvatarCard)
+    Library:MakeDraggable(FloatingTabWidget, FloatAvatarCard, true, false, WindowSnapConfig)
 
     local FloatAvatarImg = New("ImageLabel", {
         AnchorPoint = Vector2.new(0.5, 0.5),
