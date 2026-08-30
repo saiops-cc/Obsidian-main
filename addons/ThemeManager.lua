@@ -50,7 +50,7 @@ local ThemeManager = {
     Folder = "ObsidianLibSettings",
 
     AppliedToTab = false,
-    DefaultThemeName = NeonEdge,
+    DefaultThemeName = "NeonEdge",
 
     --// Accessibility: contrast warning state
     ContrastLabel = nil,
@@ -407,16 +407,25 @@ function ThemeManager:GetDefaultTheme(): (string, boolean, string?)
     end
 
     if not isfile(DefaultThemePath) then
+        if ThemeManager.DefaultThemeName and DoesThemeExist(ThemeManager.DefaultThemeName, true) then
+            return ThemeManager.DefaultThemeName, true
+        end
         return "none", false, "Default theme is not set"
     end
 
     local SuccessRead, DefaultThemeName = pcall(readfile, DefaultThemePath)
     if not (SuccessRead and typeof(DefaultThemeName) == "string") then
+        if ThemeManager.DefaultThemeName and DoesThemeExist(ThemeManager.DefaultThemeName, true) then
+            return ThemeManager.DefaultThemeName, true
+        end
         return "none", false, DefaultThemeName
     end
 
     local ConfigExists = DoesThemeExist(DefaultThemeName, true)
     if not ConfigExists then
+        if ThemeManager.DefaultThemeName and DoesThemeExist(ThemeManager.DefaultThemeName, true) then
+            return ThemeManager.DefaultThemeName, true
+        end
         return "none", false, "Theme file not found"
     end
 
@@ -509,16 +518,16 @@ end
 
 function ThemeManager:LoadDefault()
     local ThemeName, Success, FetchErrorMessage = ThemeManager:GetDefaultTheme()
-    if not Success or FetchErrorMessage then
-        if FetchErrorMessage ~= "Default theme is not set" then
-            ThemeManager.Library:Notify(string.format("Failed to apply default theme: %s", FetchErrorMessage))
-        end
-
-        return
+    if not Success or FetchErrorMessage or ThemeName == "none" then
+        ThemeName = ThemeManager.DefaultThemeName or "NeonEdge"
     end
 
     if not ThemeManager:GetCustomTheme(ThemeName) then
-        ThemeManager.Library.Options.ThemeManager_ThemeList:SetValue(ThemeName)
+        if ThemeManager.Library and ThemeManager.Library.Options and ThemeManager.Library.Options.ThemeManager_ThemeList then
+            ThemeManager.Library.Options.ThemeManager_ThemeList:SetValue(ThemeName)
+        else
+            ThemeManager:ApplyTheme(ThemeName)
+        end
         return
     end
 
