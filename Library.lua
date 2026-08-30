@@ -560,7 +560,23 @@ local Templates = {
         Disabled = false,
         Visible = true,
 
-        AllowRightClickInput = true
+        AllowRightClickInput = false
+    },
+    SliderInput = {
+        Text = "Slider",
+        Default = 0,
+        Min = 0,
+        Max = 100,
+        Rounding = 0,
+
+        Prefix = "",
+        Suffix = "",
+
+        Callback = function() end,
+        Changed = function() end,
+
+        Disabled = false,
+        Visible = true,
     },
     Dropdown = {
         Values = {},
@@ -7706,6 +7722,10 @@ do
     function Funcs:AddSlider(Idx, Info)
         if self.Destroyed then return nil end
 
+        if typeof(Info) == "table" and (Info.Input == true or Info.WithInput == true or Info.ShowInput == true) then
+            return self:AddSliderInput(Idx, Info)
+        end
+
         Info = Library:Validate(Info, Templates.Slider)
 
         local Groupbox = self
@@ -7819,21 +7839,15 @@ do
             Parent = Bar,
         })
 
-        table.insert(
-            Library.Corners,
-            New("UICorner", {
-                CornerRadius = UDim.new(0, Library.CornerRadius / 2),
-                Parent = Bar,
-            })
-        )
+        New("UICorner", {
+            CornerRadius = UDim.new(0, 20),
+            Parent = Bar,
+        })
 
-        table.insert(
-            Library.Corners,
-            New("UICorner", {
-                CornerRadius = UDim.new(0, Library.CornerRadius / 2),
-                Parent = Fill,
-            })
-        )
+        New("UICorner", {
+            CornerRadius = UDim.new(0, 20),
+            Parent = Fill,
+        })
 
         function Slider:UpdateColors()
             if Library.Unloaded then
@@ -8144,6 +8158,429 @@ do
 
         return Slider
     end
+
+    function Funcs:AddSliderInput(Idx, Info)
+        if self.Destroyed then return nil end
+
+        Info = Library:Validate(Info, Templates.SliderInput or Templates.Slider)
+
+        local Groupbox = self
+        local Container = Groupbox.Container
+
+        local Slider = {
+            Connections = {},
+            Destroyed = false,
+
+            Text = Info.Text,
+            Value = Info.Default,
+
+            Min = Info.Min,
+            Max = Info.Max,
+
+            Prefix = Info.Prefix,
+            Suffix = Info.Suffix,
+            Compact = Info.Compact,
+            Rounding = Info.Rounding,
+            HideMax = Info.HideMax,
+
+            Tooltip = Info.Tooltip,
+            DisabledTooltip = Info.DisabledTooltip,
+            TooltipTable = nil,
+
+            Callback = Info.Callback,
+            Changed = Info.Changed,
+
+            Disabled = Info.Disabled,
+            Visible = Info.Visible,
+
+            Type = "Slider",
+        }
+
+        local Holder = New("Frame", {
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, Info.Compact and 15 or 33),
+            Visible = Slider.Visible,
+            Parent = Container,
+        })
+
+        local SliderLabel
+        if not Info.Compact then
+            SliderLabel = New("TextLabel", {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 14),
+                Text = Slider.Text,
+                TextSize = 14,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = Holder,
+            })
+        end
+
+        local InputWidth = 48
+        local Gap = 6
+
+        local Bar = New("TextButton", {
+            Active = not Slider.Disabled,
+            AnchorPoint = Vector2.new(0, 1),
+            BackgroundColor3 = "MainColor",
+            Position = UDim2.fromScale(0, 1),
+            Size = UDim2.new(1, -(InputWidth + Gap), 0, 15),
+            Text = "",
+            Parent = Holder,
+        })
+
+        New("UIStroke", {
+            Color = "OutlineColor",
+            Parent = Bar,
+        })
+
+        local DisplayLabel = New("TextLabel", {
+            BackgroundTransparency = 1,
+            Size = UDim2.fromScale(1, 1),
+            Text = "",
+            TextSize = 14,
+            ZIndex = Bar.ZIndex + 2,
+            Parent = Bar,
+        })
+        New("UIStroke", {
+            ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
+            Color = "DarkColor",
+            LineJoinMode = Enum.LineJoinMode.Miter,
+            Parent = DisplayLabel,
+        })
+
+        local Fill = New("Frame", {
+            BackgroundColor3 = "AccentColor",
+            Size = UDim2.fromScale(0.5, 1),
+            ZIndex = Bar.ZIndex + 1,
+            Parent = Bar,
+        })
+
+        New("UICorner", {
+            CornerRadius = UDim.new(0, 20),
+            Parent = Bar,
+        })
+
+        New("UICorner", {
+            CornerRadius = UDim.new(0, 20),
+            Parent = Fill,
+        })
+
+        local InputBox = New("TextBox", {
+            AnchorPoint = Vector2.new(1, 1),
+            BackgroundColor3 = "MainColor",
+            ClearTextOnFocus = false,
+            Position = UDim2.fromScale(1, 1),
+            Size = UDim2.new(0, InputWidth, 0, 15),
+            Text = tostring(Slider.Value),
+            TextColor3 = "FontColor",
+            TextEditable = not Slider.Disabled,
+            TextSize = 13,
+            TextXAlignment = Enum.TextXAlignment.Center,
+            Parent = Holder,
+        })
+
+        local InputBoxStroke = New("UIStroke", {
+            Color = "OutlineColor",
+            Parent = InputBox,
+        })
+
+        New("UICorner", {
+            CornerRadius = UDim.new(0, 4),
+            Parent = InputBox,
+        })
+
+        New("UIPadding", {
+            PaddingBottom = UDim.new(0, 0),
+            PaddingLeft = UDim.new(0, 2),
+            PaddingRight = UDim.new(0, 2),
+            PaddingTop = UDim.new(0, 0),
+            Parent = InputBox,
+        })
+
+        Slider.InputBox = InputBox
+
+        function Slider:UpdateColors()
+            if Library.Unloaded then
+                return
+            end
+
+            if SliderLabel then
+                SliderLabel.TextTransparency = Slider.Disabled and 0.8 or 0
+            end
+            DisplayLabel.TextTransparency = Slider.Disabled and 0.8 or 0
+            InputBox.TextTransparency = Slider.Disabled and 0.8 or 0
+            InputBox.TextEditable = not Slider.Disabled
+
+            Fill.BackgroundColor3 = Slider.Disabled and Library.Scheme.OutlineColor or Library.Scheme.AccentColor
+            Library.Registry[Fill].BackgroundColor3 = Slider.Disabled and "OutlineColor" or "AccentColor"
+        end
+
+        function Slider:Display()
+            if Library.Unloaded then
+                return
+            end
+
+            local CustomDisplayText = nil
+            if Info.FormatDisplayValue then
+                CustomDisplayText = Info.FormatDisplayValue(Slider, Slider.Value)
+            end
+
+            if CustomDisplayText then
+                DisplayLabel.Text = tostring(CustomDisplayText)
+            else
+                if Info.Compact then
+                    DisplayLabel.Text =
+                        string.format("%s: %s%s%s", Slider.Text, Slider.Prefix, Slider.Value, Slider.Suffix)
+                elseif Info.HideMax then
+                    DisplayLabel.Text = string.format("%s%s%s", Slider.Prefix, Slider.Value, Slider.Suffix)
+                else
+                    DisplayLabel.Text = string.format(
+                        "%s%s%s/%s%s%s",
+                        Slider.Prefix,
+                        Slider.Value,
+                        Slider.Suffix,
+                        Slider.Prefix,
+                        Slider.Max,
+                        Slider.Suffix
+                    )
+                end
+            end
+
+            local X = (Slider.Value - Slider.Min) / (Slider.Max - Slider.Min)
+            Fill.Size = UDim2.fromScale(math.clamp(X, 0, 1), 1)
+
+            if not InputBox:IsFocused() then
+                InputBox.Text = tostring(Slider.Value)
+            end
+        end
+
+        function Slider:OnChanged(Func)
+            Slider.Changed = Func
+        end
+
+        function Slider:SetMax(Value)
+            assert(Value > Slider.Min, "Max value cannot be less than the current min value.")
+
+            Slider:SetValue(math.clamp(Slider.Value, Slider.Min, Value))
+            Slider.Max = Value
+            Slider:Display()
+        end
+
+        function Slider:SetMin(Value)
+            assert(Value < Slider.Max, "Min value cannot be greater than the current max value.")
+
+            Slider:SetValue(math.clamp(Slider.Value, Value, Slider.Max))
+            Slider.Min = Value
+            Slider:Display()
+        end
+
+        function Slider:RunChanged()
+            Library:SafeCallback(Slider.Callback, Slider.Value)
+            Library:SafeCallback(Slider.Changed, Slider.Value)
+        end
+
+        function Slider:SetValue(Str)
+            if Slider.Disabled then
+                return
+            end
+
+            local Num = tonumber(Str)
+            if not Num then
+                return
+            end
+
+            Num = math.clamp(Num, Slider.Min, Slider.Max)
+            Num = Round(Num, Slider.Rounding)
+
+            if Num == Slider.Value then
+                Slider:Display()
+                return
+            end
+
+            Slider.Value = Num
+            Slider:Display()
+
+            Slider:RunChanged()
+        end
+
+        function Slider:SetDisabled(Disabled: boolean)
+            Slider.Disabled = Disabled
+
+            if Slider.TooltipTable then
+                Slider.TooltipTable.Disabled = Slider.Disabled
+            end
+
+            Bar.Active = not Slider.Disabled
+            InputBox.TextEditable = not Slider.Disabled
+            Slider:UpdateColors()
+        end
+
+        function Slider:SetVisible(Visible: boolean)
+            Slider.Visible = Visible
+
+            Holder.Visible = Slider.Visible
+            Groupbox:Resize()
+        end
+
+        function Slider:SetText(Text: string)
+            Slider.Text = Text
+            if SliderLabel then
+                SliderLabel.Text = Text
+                return
+            end
+            Slider:Display()
+        end
+
+        function Slider:SetPrefix(Prefix: string)
+            Slider.Prefix = Prefix
+            Slider:Display()
+        end
+
+        function Slider:SetSuffix(Suffix: string)
+            Slider.Suffix = Suffix
+            Slider:Display()
+        end
+
+        local LastValidText = tostring(Slider.Value)
+        table.insert(Slider.Connections, InputBox:GetPropertyChangedSignal("Text"):Connect(function()
+            local Text = InputBox.Text
+            local AsNum = tonumber(Text)
+
+            if #tostring(Text) > 0 and not AsNum and Text ~= "-" and Text ~= "." and Text ~= "-." then
+                InputBox.Text = LastValidText
+            else
+                if Slider.Rounding == 0 and Text:find("%.") then
+                    InputBox.Text = LastValidText
+                    return
+                end
+
+                local DecimalPos = Text:find("%.")
+                if DecimalPos and Slider.Rounding > 0 then
+                    local Decimals = #Text - DecimalPos
+                    if Decimals > Slider.Rounding then
+                        InputBox.Text = LastValidText
+                        return
+                    end
+                end
+
+                LastValidText = Text
+            end
+        end))
+
+        table.insert(Slider.Connections, InputBox.FocusLost:Connect(function()
+            Library.Registry[InputBoxStroke].Color = "OutlineColor"
+            TweenService:Create(InputBoxStroke, Library.TweenInfo, {
+                Color = Library.Scheme.OutlineColor,
+            }):Play()
+
+            local Num = tonumber(InputBox.Text)
+            if not Num then
+                InputBox.Text = tostring(Slider.Value)
+                return
+            end
+
+            Num = math.clamp(Num, Slider.Min, Slider.Max)
+            Num = Round(Num, Slider.Rounding)
+            Slider:SetValue(Num)
+            InputBox.Text = tostring(Slider.Value)
+        end))
+
+        table.insert(Slider.Connections, InputBox.Focused:Connect(function()
+            Library.Registry[InputBoxStroke].Color = "AccentColor"
+            TweenService:Create(InputBoxStroke, Library.TweenInfo, {
+                Color = Library.Scheme.AccentColor,
+            }):Play()
+        end))
+
+        table.insert(Slider.Connections, Bar.InputBegan:Connect(function(Input: InputObject)
+            local ValidInput = IsClickInput(Input)
+            if not ValidInput or Slider.Disabled then
+                return
+            end
+
+            if Library.ActiveTab then
+                for _, Side in Library.ActiveTab.Sides do
+                    Side.ScrollingEnabled = false
+                end
+            end
+
+            if Library.ActiveLoading and Library.ActiveLoading.Sidebar then
+                Library.ActiveLoading.Sidebar.Container.ScrollingEnabled = false
+            end
+
+            while IsDragInput(Input) and not Slider.Destroyed do
+                local Location = Mouse.X
+                local Scale = math.clamp((Location - Bar.AbsolutePosition.X) / Bar.AbsoluteSize.X, 0, 1)
+
+                local OldValue = Slider.Value
+                Slider.Value = Round(Slider.Min + ((Slider.Max - Slider.Min) * Scale), Slider.Rounding)
+
+                Slider:Display()
+                if Slider.Value ~= OldValue then
+                    Slider:RunChanged()
+                end
+
+                RunService.RenderStepped:Wait()
+            end
+
+            if Library.ActiveTab then
+                for _, Side in Library.ActiveTab.Sides do
+                    Side.ScrollingEnabled = true
+                end
+            end
+
+            if Library.ActiveLoading and Library.ActiveLoading.Sidebar then
+                Library.ActiveLoading.Sidebar.Container.ScrollingEnabled = true
+            end
+        end))
+
+        if typeof(Slider.Tooltip) == "string" or typeof(Slider.DisabledTooltip) == "string" then
+            Slider.TooltipTable = Library:AddTooltip(Slider.Tooltip, Slider.DisabledTooltip, Bar)
+            Slider.TooltipTable.Disabled = Slider.Disabled
+        end
+
+        Slider:UpdateColors()
+        Slider:Display()
+        Groupbox:Resize()
+
+        Slider.Holder = Holder
+        table.insert(Groupbox.Elements, Slider)
+
+        Slider.Default = Slider.Value
+
+        Options[Idx] = Slider
+
+        function Slider:Destroy()
+            Slider.Destroyed = true
+
+            if Slider.Connections then
+                for _, Connection in Slider.Connections do
+                    Connection:Disconnect()
+                end
+            end
+
+            if Slider.TooltipTable then
+                Slider.TooltipTable:Destroy()
+            end
+
+            if Holder then
+                Holder:Destroy()
+            end
+
+            local ElemIdx = table.find(Groupbox.Elements, Slider)
+            if ElemIdx then
+                table.remove(Groupbox.Elements, ElemIdx)
+            end
+
+            Groupbox:Resize()
+            Options[Idx] = nil
+        end
+
+        return Slider
+    end
+
+    Funcs.AddInputSlider = Funcs.AddSliderInput
+    Funcs.AddSliderWithInput = Funcs.AddSliderInput
 
     function Funcs:AddDropdown(Idx, Info)
         if self.Destroyed then return nil end

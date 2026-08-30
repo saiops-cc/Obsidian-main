@@ -365,6 +365,30 @@ LeftGroupBox:AddSlider("MySlider2", {
 	Visible = true, -- Will make the slider invisible (true / false)
 })
 
+--[[
+	Groupbox:AddSliderInput
+	Arguments: Idx, SliderOptions
+
+	Creates a slider with a numeric text input box beside the slider.
+	You can also use Groupbox:AddSlider(Idx, { ..., Input = true })
+]]
+LeftGroupBox:AddSliderInput("MySliderInput", {
+	Text = "Slider with input option!",
+	Default = 50,
+	Min = 0,
+	Max = 100,
+	Rounding = 0,
+	Compact = false,
+
+	Callback = function(Value)
+		print("[cb] MySliderInput was changed! New value:", Value)
+	end,
+
+	Tooltip = "I am a slider with a numeric input box beside me!",
+	Disabled = false,
+	Visible = true,
+})
+
 -- Groupbox:AddInput
 -- Arguments: Idx, Info
 LeftGroupBox:AddInput("MyTextbox", {

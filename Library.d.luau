@@ -161,6 +161,9 @@ export type SliderInfo = {
     Disabled: boolean?,
     Visible: boolean?,
     AllowRightClickInput: boolean?,
+    Input: boolean?,
+    WithInput: boolean?,
+    ShowInput: boolean?,
 }
 
 export type DropdownInfo = {
@@ -458,6 +461,7 @@ export type Slider = {
     AllowRightClickInput: boolean,
     Type: "Slider",
     Holder: Frame,
+    InputBox: TextBox?,
 
     UpdateColors: (self: Slider) -> (),
     Display: (self: Slider) -> (),
@@ -643,6 +647,9 @@ export type BaseGroupbox = {
     AddToggle: (self: Groupbox, Idx: string, Info: ToggleInfo) -> Toggle,
     AddInput: (self: Groupbox, Idx: string, Info: InputInfo) -> Input,
     AddSlider: (self: Groupbox, Idx: string, Info: SliderInfo) -> Slider,
+    AddSliderInput: (self: Groupbox, Idx: string, Info: SliderInfo) -> Slider,
+    AddInputSlider: (self: Groupbox, Idx: string, Info: SliderInfo) -> Slider,
+    AddSliderWithInput: (self: Groupbox, Idx: string, Info: SliderInfo) -> Slider,
     AddDropdown: (self: Groupbox, Idx: string, Info: DropdownInfo) -> Dropdown,
     AddViewport: (self: Groupbox, Idx: string, Info: ViewportInfo) -> Viewport,
     AddImage: (self: Groupbox, Idx: string, Info: ImageInfo) -> Image,

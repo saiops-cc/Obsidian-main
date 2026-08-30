@@ -1,3 +1,11 @@
+## 30.08.2026
+
+```diff
+[features]
++ Slider with numeric text input option beside the slider (Groupbox:AddSliderInput, Groupbox:AddInputSlider, Groupbox:AddSliderWithInput, or SliderInfo.Input = true)
++ Slider corner radius set to 20/20 exclusively for sliders
+```
+
 ## 28.08.2026
 
 ```diff
