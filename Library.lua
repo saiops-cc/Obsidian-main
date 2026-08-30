@@ -11444,6 +11444,10 @@ function Library:CreateWindow(WindowInfo)
             end
         end))
 
+        Library:GiveSignal(ToggleSidebarButton.MouseButton1Click:Connect(function()
+            Window:ToggleSidebar()
+        end))
+
         --// Title \\--
         TitleHolder = New("Frame", {
             BackgroundTransparency = 1,
