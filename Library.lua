@@ -12506,11 +12506,15 @@ function Library:CreateWindow(WindowInfo)
 
             Tabs.Visible = false
             DividerLine.Visible = false
-            TitleHolder.Visible = false
 
             Tabs.Size = UDim2.new(0, 0, 1, -70)
             Container.Size = UDim2.new(1, 0, 1, -70)
-            RightWrapper.Size = UDim2.new(1, -38 - (WindowInfo.Minimizable ~= false and 134 or 104) - 1, 1, -16)
+
+            TitleHolder.Visible = true
+            WindowTitle.Visible = true
+            if WindowIcon then
+                WindowIcon.Visible = true
+            end
 
             if ToggleSidebarIconImage then
                 local OpenIcon = Library:GetCustomIcon("panel-left") or Library:GetCustomIcon("menu") or Library:GetCustomIcon("sidebar")
@@ -12532,6 +12536,10 @@ function Library:CreateWindow(WindowInfo)
             Tabs.Size = UDim2.new(0, TargetWidth, 1, -70)
             Container.Size = UDim2.new(1, -TargetWidth - 1, 1, -70)
             RightWrapper.Size = UDim2.new(1, -TargetWidth - (WindowInfo.Minimizable ~= false and 134 or 104) - 1, 1, -16)
+
+            if WindowInfo.EnableCompacting then
+                ApplyCompact()
+            end
 
             if ToggleSidebarIconImage then
                 local CloseIcon = Library:GetCustomIcon("panel-left-close") or Library:GetCustomIcon("panel-left") or Library:GetCustomIcon("sidebar") or Library:GetCustomIcon("menu")
@@ -13909,7 +13917,7 @@ function Library:CreateWindow(WindowInfo)
             if Tabs then Tabs.Visible = not SidebarHidden end
             if Container then Container.Visible = true end
             if DividerLine then DividerLine.Visible = not SidebarHidden end
-            if TitleHolder then TitleHolder.Visible = not SidebarHidden end
+            if TitleHolder then TitleHolder.Visible = true end
             if BottomBackground then BottomBackground.Visible = true end
             if BottomBar then BottomBar.Visible = true end
             if ResizeButton and WindowInfo.Resizable then
