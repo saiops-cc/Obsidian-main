@@ -10770,6 +10770,20 @@ function Library:SetBackgroundImage(Image: string | number)
     Library:UpdateColorsUsingRegistry()
 end
 
+function Library:SetTransparency(Transparency: number)
+    assert(typeof(Transparency) == "number", "Expected number for transparency")
+    Library.Transparency = math.clamp(Transparency, 0, 0.85)
+    if Library.Window and Library.Window.SetTransparency then
+        Library.Window:SetTransparency(Transparency)
+    end
+end
+
+function Library:SetParticles(Enabled: boolean)
+    if Library.Window and Library.Window.SetParticles then
+        Library.Window:SetParticles(Enabled)
+    end
+end
+
 function Library:UpdateNotificationPositions(Snap: boolean?)
     local IsLeft = Library.NotifySide:lower() == "left"
     local XScale = IsLeft and 0 or 1
@@ -11236,6 +11250,15 @@ function Library:CreateWindow(WindowInfo)
     Library.Window = Window
     local MainFrame
     local DividerLine
+    local ParticleContainer
+    local ParticlesEnabled = WindowInfo.Particles ~= false
+    local ParticleSpeed = math.max(0.1, WindowInfo.ParticleSpeed or 1)
+    local ParticleCount = math.clamp(WindowInfo.ParticleCount or 22, 5, 50)
+    local ParticleColorOverride = WindowInfo.ParticleColor
+    local ParticlePool = {}
+    local CurrentTransparency = math.clamp(WindowInfo.Transparency or 0, 0, 0.85)
+    Library.Transparency = CurrentTransparency
+    local ApplyTransparency
     local TitleHolder
     local WindowTitle
     local WindowIcon
@@ -11326,6 +11349,140 @@ function Library:CreateWindow(WindowInfo)
             Parent = MainFrame,
             ZIndex = 2
         })
+
+        --// Animated Particle Background Canvas \\--
+        ParticleContainer = New("Frame", {
+            BackgroundTransparency = 1,
+            ClipsDescendants = true,
+            Name = "ParticleCanvas",
+            Position = UDim2.fromScale(0, 0),
+            Size = UDim2.fromScale(1, 1),
+            ZIndex = 1,
+            Parent = MainFrame,
+        })
+        table.insert(
+            Library.Corners,
+            New("UICorner", {
+                CornerRadius = UDim.new(0, WindowInfo.CornerRadius),
+                Parent = ParticleContainer,
+            })
+        )
+
+        local function GetParticleColor()
+            if ParticleColorOverride then
+                if typeof(ParticleColorOverride) == "string" then
+                    return Library.Scheme[ParticleColorOverride] or Library.Scheme.AccentColor
+                elseif typeof(ParticleColorOverride) == "Color3" then
+                    return ParticleColorOverride
+                end
+            end
+            return Library.Scheme.AccentColor
+        end
+
+        local function CreateParticle()
+            local SizePx = math.random(3, 5)
+            local Dot = New("Frame", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                BackgroundColor3 = GetParticleColor,
+                BorderSizePixel = 0,
+                Size = UDim2.fromOffset(SizePx, SizePx),
+                Position = UDim2.new(math.random(), 0, math.random(), 0),
+                BackgroundTransparency = math.random(40, 80) / 100,
+                ZIndex = 1,
+                Parent = ParticleContainer,
+            })
+            New("UICorner", {
+                CornerRadius = UDim.new(1, 0),
+                Parent = Dot,
+            })
+
+            local Particle = {
+                gui = Dot,
+                x = math.random(),
+                y = math.random(),
+                vx = (math.random(-15, 15) / 1000) * 0.05,
+                vy = -(math.random(10, 30) / 1000) * 0.05,
+                phase = math.random() * math.pi * 2,
+                pulseSpeed = math.random(15, 30) / 10,
+                baseAlpha = math.random(40, 75) / 100,
+                alphaRange = math.random(15, 25) / 100,
+                size = SizePx,
+            }
+            table.insert(ParticlePool, Particle)
+            return Particle
+        end
+
+        local function PopulateParticles()
+            for _, p in ipairs(ParticlePool) do
+                if p.gui then p.gui:Destroy() end
+            end
+            table.clear(ParticlePool)
+
+            if not ParticlesEnabled then
+                return
+            end
+
+            for _ = 1, ParticleCount do
+                CreateParticle()
+            end
+        end
+
+        PopulateParticles()
+
+        Library:GiveSignal(RunService.RenderStepped:Connect(function(dt)
+            if not (MainFrame and MainFrame.Visible and Library.Toggled and not IsMinimized and ParticlesEnabled) then
+                return
+            end
+
+            local clampedDt = math.min(dt, 0.05)
+            local speedMult = ParticleSpeed
+
+            for _, p in ipairs(ParticlePool) do
+                p.x = p.x + (p.vx * speedMult * clampedDt * 60)
+                p.y = p.y + (p.vy * speedMult * clampedDt * 60)
+                p.phase = p.phase + (p.pulseSpeed * clampedDt)
+
+                -- Wrap boundaries smoothly
+                if p.y < -0.02 then
+                    p.y = 1.02
+                    p.x = math.random()
+                elseif p.y > 1.02 then
+                    p.y = -0.02
+                    p.x = math.random()
+                end
+
+                if p.x < -0.02 then
+                    p.x = 1.02
+                elseif p.x > 1.02 then
+                    p.x = -0.02
+                end
+
+                p.gui.Position = UDim2.new(p.x, 0, p.y, 0)
+                local currentAlpha = math.clamp(p.baseAlpha + math.sin(p.phase) * p.alphaRange, 0.25, 0.95)
+                p.gui.BackgroundTransparency = currentAlpha
+            end
+        end))
+
+        ApplyTransparency = function(Transparency: number)
+            CurrentTransparency = math.clamp(Transparency, 0, 0.85)
+            Library.Transparency = CurrentTransparency
+
+            if MainFrame then
+                MainFrame.BackgroundTransparency = CurrentTransparency
+            end
+            if Container then
+                Container.BackgroundTransparency = math.clamp(CurrentTransparency + (CurrentTransparency > 0 and 0.05 or 0), 0, 1)
+            end
+            if Tabs then
+                Tabs.BackgroundTransparency = math.clamp(CurrentTransparency + (CurrentTransparency > 0 and 0.05 or 0), 0, 1)
+            end
+            if DividerLine then
+                DividerLine.BackgroundTransparency = math.clamp(CurrentTransparency * 0.5, 0, 1)
+            end
+            if BottomBackground then
+                BottomBackground.BackgroundTransparency = math.clamp(CurrentTransparency, 0, 1)
+            end
+        end
 
         local BackgroundIcon = Library:GetCustomIcon(WindowInfo.BackgroundImage)
         HasBackgroundImage = BackgroundIcon ~= nil
@@ -12211,6 +12368,7 @@ function Library:CreateWindow(WindowInfo)
         })
 
         Library.WindowContainer = Container
+        ApplyTransparency(CurrentTransparency)
     end
 
     --// Window Table \\--
@@ -12317,6 +12475,57 @@ function Library:CreateWindow(WindowInfo)
         if AvoidCoreGui ~= nil then
             WindowInfo.SnapAvoidCoreGui = AvoidCoreGui == true
             WindowSnapConfig.AvoidCoreGui = WindowInfo.SnapAvoidCoreGui
+        end
+    end
+
+    function Window:SetTransparency(Value: number)
+        assert(typeof(Value) == "number", "Expected number for transparency got: " .. typeof(Value))
+        ApplyTransparency(Value)
+    end
+
+    function Window:GetTransparency(): number
+        return CurrentTransparency
+    end
+
+    function Window:SetParticles(Enabled: boolean)
+        ParticlesEnabled = Enabled == true
+        WindowInfo.Particles = ParticlesEnabled
+        if ParticleContainer then
+            ParticleContainer.Visible = ParticlesEnabled
+        end
+        if ParticlesEnabled and #ParticlePool == 0 then
+            PopulateParticles()
+        end
+    end
+
+    function Window:GetParticles(): boolean
+        return ParticlesEnabled
+    end
+
+    function Window:SetParticleSpeed(Speed: number)
+        assert(typeof(Speed) == "number", "Expected number for particle speed got: " .. typeof(Speed))
+        ParticleSpeed = math.max(0.1, Speed)
+        WindowInfo.ParticleSpeed = ParticleSpeed
+    end
+
+    function Window:SetParticleCount(Count: number)
+        assert(typeof(Count) == "number", "Expected number for particle count got: " .. typeof(Count))
+        ParticleCount = math.clamp(math.floor(Count), 5, 50)
+        WindowInfo.ParticleCount = ParticleCount
+        PopulateParticles()
+    end
+
+    function Window:SetParticleColor(Color: Color3 | string)
+        ParticleColorOverride = Color
+        WindowInfo.ParticleColor = Color
+        for _, p in ipairs(ParticlePool) do
+            if p.gui then
+                if typeof(Color) == "string" then
+                    p.gui.BackgroundColor3 = Library.Scheme[Color] or Library.Scheme.AccentColor
+                elseif typeof(Color) == "Color3" then
+                    p.gui.BackgroundColor3 = Color
+                end
+            end
         end
     end
 

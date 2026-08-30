@@ -837,6 +837,44 @@ function ThemeManager:CreateThemeManager(Themesbox: any)
         ClearTextOnBlur = false
     })
 
+    Themesbox:AddSliderInput("ThemeManager_Transparency", {
+        Text = "Window Transparency",
+        Default = (ThemeManager.Library and ThemeManager.Library.Transparency) or 0,
+        Min = 0,
+        Max = 0.85,
+        Rounding = 2,
+        Compact = true,
+        Callback = function(Value)
+            if ThemeManager.Library and ThemeManager.Library.SetTransparency then
+                ThemeManager.Library:SetTransparency(Value)
+            end
+        end,
+    })
+
+    Themesbox:AddToggle("ThemeManager_Particles", {
+        Text = "Background Particles",
+        Default = true,
+        Callback = function(Value)
+            if ThemeManager.Library and ThemeManager.Library.SetParticles then
+                ThemeManager.Library:SetParticles(Value)
+            end
+        end,
+    })
+
+    Themesbox:AddSliderInput("ThemeManager_ParticleSpeed", {
+        Text = "Particle Speed",
+        Default = 1,
+        Min = 0.1,
+        Max = 3,
+        Rounding = 1,
+        Compact = true,
+        Callback = function(Value)
+            if ThemeManager.Library and ThemeManager.Library.Window and ThemeManager.Library.Window.SetParticleSpeed then
+                ThemeManager.Library.Window:SetParticleSpeed(Value)
+            end
+        end,
+    })
+
     Themesbox:AddDivider()
 
     Themesbox:AddDropdown("ThemeManager_ThemeList", { 

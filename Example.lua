@@ -853,6 +853,36 @@ MenuGroup:AddSlider("UICornerSlider", {
 	end
 })
 
+MenuGroup:AddSliderInput("WindowTransparency", {
+	Text = "Window Transparency",
+	Default = 0,
+	Min = 0,
+	Max = 0.85,
+	Rounding = 2,
+	Callback = function(value)
+		Window:SetTransparency(value)
+	end
+})
+
+MenuGroup:AddToggle("WindowParticles", {
+	Text = "Background Particles",
+	Default = true,
+	Callback = function(value)
+		Window:SetParticles(value)
+	end
+})
+
+MenuGroup:AddSliderInput("ParticleSpeed", {
+	Text = "Particle Speed",
+	Default = 1,
+	Min = 0.1,
+	Max = 3,
+	Rounding = 1,
+	Callback = function(value)
+		Window:SetParticleSpeed(value)
+	end
+})
+
 MenuGroup:AddDivider()
 MenuGroup:AddLabel("Menu bind")
 	:AddKeyPicker("MenuKeybind", { Default = "RightShift", NoUI = true, Text = "Menu keybind" })
