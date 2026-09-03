@@ -872,53 +872,6 @@ MenuGroup:AddToggle("WindowParticles", {
 	end
 })
 
-MenuGroup:AddDropdown("ParticleTypeDropdown", {
-	Values = { "Dot", "Image", "Emoji" },
-	Default = "Dot",
-	Text = "Particle Type",
-	Callback = function(value)
-		if value == "Image" then
-			Window:SetParticleImage("icon.png")
-		elseif value == "Emoji" then
-			local currentEmoji = (Options.ParticleEmojiDropdown and Options.ParticleEmojiDropdown.Value) or "✨"
-			Window:SetParticleEmoji(currentEmoji)
-		else
-			Window:SetParticleType("Dot")
-		end
-	end,
-})
-
-MenuGroup:AddDropdown("ParticleEmojiDropdown", {
-	Values = { "✨", "⭐", "🌸", "❄️", "🔥", "💎", "👑" },
-	Default = "✨",
-	Text = "Particle Emoji",
-	Callback = function(value)
-		Window:SetParticleEmoji(value)
-	end,
-})
-
-MenuGroup:AddSliderInput("ParticleDensity", {
-	Text = "Particle Density",
-	Default = 35,
-	Min = 5,
-	Max = 150,
-	Rounding = 0,
-	Callback = function(value)
-		Window:SetParticleCount(value)
-	end
-})
-
-MenuGroup:AddSliderInput("ParticleSpeed", {
-	Text = "Particle Speed",
-	Default = 1,
-	Min = 0.1,
-	Max = 3,
-	Rounding = 1,
-	Callback = function(value)
-		Window:SetParticleSpeed(value)
-	end
-})
-
 MenuGroup:AddDivider()
 MenuGroup:AddLabel("Menu bind")
 	:AddKeyPicker("MenuKeybind", { Default = "RightShift", NoUI = true, Text = "Menu keybind" })
