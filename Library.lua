@@ -11396,8 +11396,8 @@ function Library:CreateWindow(WindowInfo)
 
         DividerLine = New("Frame", {
             BackgroundColor3 = "OutlineColor",
-            Position = UDim2.fromOffset(InitialLeftWidth, 0),
-            Size = UDim2.new(0, 1, 1, -21),
+            Position = UDim2.fromOffset(InitialLeftWidth, 48),
+            Size = UDim2.new(0, 1, 1, -69),
             Parent = MainFrame,
             ZIndex = 2
         })
@@ -12845,7 +12845,7 @@ function Library:CreateWindow(WindowInfo)
         end
         Width = math.clamp(Width, 48, MainFrame.Size.X.Offset - WindowInfo.MinContainerWidth - 1)
 
-        DividerLine.Position = UDim2.fromOffset(Width, 0)
+        DividerLine.Position = UDim2.fromOffset(Width, 48)
 
         local TopLeftReserved = math.max(Width, 190)
         RightWrapper.Size = UDim2.new(1, -TopLeftReserved - (WindowInfo.Minimizable ~= false and 134 or 104) - 1, 1, -16)
@@ -12879,7 +12879,7 @@ function Library:CreateWindow(WindowInfo)
             Tabs.Visible = true
             DividerLine.Visible = true
 
-            DividerLine.Position = UDim2.fromOffset(CompactWidth, 0)
+            DividerLine.Position = UDim2.fromOffset(CompactWidth, 48)
             Tabs.Size = UDim2.new(0, CompactWidth, 1, -70)
             Container.Size = UDim2.new(1, -CompactWidth - 1, 1, -70)
 
@@ -12923,7 +12923,7 @@ function Library:CreateWindow(WindowInfo)
                 WindowIcon.Visible = true
             end
 
-            DividerLine.Position = UDim2.fromOffset(TargetWidth, 0)
+            DividerLine.Position = UDim2.fromOffset(TargetWidth, 48)
             Tabs.Size = UDim2.new(0, TargetWidth, 1, -70)
             Container.Size = UDim2.new(1, -TargetWidth - 1, 1, -70)
 
