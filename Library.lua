@@ -11749,15 +11749,17 @@ function Library:CreateWindow(WindowInfo)
         TitleHolder = New("Frame", {
             BackgroundTransparency = 1,
             Position = UDim2.fromOffset(38, 0),
-            Size = UDim2.new(0, math.max(0, InitialLeftWidth - 38), 1, 0),
-            ClipsDescendants = true,
+            Size = UDim2.new(0, 0, 1, 0),
+            AutomaticSize = Enum.AutomaticSize.X,
+            ClipsDescendants = false,
+            ZIndex = 11,
             Parent = TopBar,
         })
         New("UIListLayout", {
             FillDirection = Enum.FillDirection.Horizontal,
             HorizontalAlignment = Enum.HorizontalAlignment.Left,
             VerticalAlignment = Enum.VerticalAlignment.Center,
-            Padding = UDim.new(0, 6),
+            Padding = UDim.new(0, 8),
             Parent = TitleHolder,
         })
 
@@ -11768,6 +11770,8 @@ function Library:CreateWindow(WindowInfo)
                 ImageColor3 = Color3.fromRGB(255, 255, 255),
                 ImageTransparency = 0,
                 Size = WindowInfo.IconSize,
+                Visible = true,
+                ZIndex = 12,
                 Parent = TitleHolder,
             })
             if Icon then
@@ -11779,22 +11783,20 @@ function Library:CreateWindow(WindowInfo)
                 Size = WindowInfo.IconSize,
                 Text = WindowInfo.Title:sub(1, 1),
                 TextScaled = true,
-                Visible = false,
+                Visible = true,
+                ZIndex = 12,
                 Parent = TitleHolder,
             })
         end
 
-        local X = Library:GetTextBounds(
-            WindowInfo.Title,
-            Library.Scheme.Font,
-            20,
-            TitleHolder.AbsoluteSize.X - (WindowInfo.Icon and WindowInfo.IconSize.X.Offset + 6 or 0) - 12
-        )
         WindowTitle = New("TextLabel", {
             BackgroundTransparency = 1,
-            Size = UDim2.new(0, X, 1, 0),
+            AutomaticSize = Enum.AutomaticSize.X,
+            Size = UDim2.fromScale(0, 1),
             Text = WindowInfo.Title,
-            TextSize = 20,
+            TextSize = 18,
+            Visible = true,
+            ZIndex = 12,
             Parent = TitleHolder,
         })
 
@@ -12811,11 +12813,6 @@ function Library:CreateWindow(WindowInfo)
             IsCompact = Window:GetSidebarWidth() <= WindowInfo.CompactWidthActivation
         end
 
-        WindowTitle.Visible = not IsCompact
-        if not WindowInfo.Icon then
-            WindowIcon.Visible = IsCompact
-        end
-
         for _, Button in Library.TabButtons do
             if not Button.Icon then
                 continue
@@ -12850,8 +12847,8 @@ function Library:CreateWindow(WindowInfo)
 
         DividerLine.Position = UDim2.fromOffset(Width, 0)
 
-        TitleHolder.Size = UDim2.new(0, math.max(0, Width - 38), 1, 0)
-        RightWrapper.Size = UDim2.new(1, -Width - (WindowInfo.Minimizable ~= false and 134 or 104) - 1, 1, -16)
+        local TopLeftReserved = math.max(Width, 190)
+        RightWrapper.Size = UDim2.new(1, -TopLeftReserved - (WindowInfo.Minimizable ~= false and 134 or 104) - 1, 1, -16)
         Tabs.Size = UDim2.new(0, Width, 1, -70)
         Container.Size = UDim2.new(1, -Width - 1, 1, -70)
 
@@ -12883,16 +12880,18 @@ function Library:CreateWindow(WindowInfo)
             DividerLine.Visible = true
 
             DividerLine.Position = UDim2.fromOffset(CompactWidth, 0)
-            TitleHolder.Size = UDim2.new(0, math.max(0, CompactWidth - 38), 1, 0)
             Tabs.Size = UDim2.new(0, CompactWidth, 1, -70)
             Container.Size = UDim2.new(1, -CompactWidth - 1, 1, -70)
-            RightWrapper.Size = UDim2.new(1, -CompactWidth - (WindowInfo.Minimizable ~= false and 134 or 104) - 1, 1, -16)
+
+            local TopLeftReserved = 190
+            RightWrapper.Size = UDim2.new(1, -TopLeftReserved - (WindowInfo.Minimizable ~= false and 134 or 104) - 1, 1, -16)
 
             IsCompact = true
-            WindowTitle.Visible = false
+            WindowTitle.Visible = true
             if WindowIcon then
                 WindowIcon.Visible = true
             end
+            TitleHolder.Visible = true
 
             for _, Button in Library.TabButtons do
                 if Button.Icon then
@@ -12919,15 +12918,19 @@ function Library:CreateWindow(WindowInfo)
             Tabs.Visible = true
             DividerLine.Visible = true
             TitleHolder.Visible = true
+            WindowTitle.Visible = true
+            if WindowIcon then
+                WindowIcon.Visible = true
+            end
 
             DividerLine.Position = UDim2.fromOffset(TargetWidth, 0)
-            TitleHolder.Size = UDim2.new(0, math.max(0, TargetWidth - 38), 1, 0)
             Tabs.Size = UDim2.new(0, TargetWidth, 1, -70)
             Container.Size = UDim2.new(1, -TargetWidth - 1, 1, -70)
-            RightWrapper.Size = UDim2.new(1, -TargetWidth - (WindowInfo.Minimizable ~= false and 134 or 104) - 1, 1, -16)
+
+            local TopLeftReserved = math.max(TargetWidth, 190)
+            RightWrapper.Size = UDim2.new(1, -TopLeftReserved - (WindowInfo.Minimizable ~= false and 134 or 104) - 1, 1, -16)
 
             IsCompact = false
-            WindowTitle.Visible = true
 
             for _, Button in Library.TabButtons do
                 if Button.Icon then
