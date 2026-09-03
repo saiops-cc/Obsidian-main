@@ -298,7 +298,7 @@ local Library = {
         AccentColor = Color3.fromHex("#48bfe3"),
         OutlineColor = Color3.fromHex("#000000"),
         FontColor = Color3.fromHex("#edf6f9"),
-        Font = Font.fromEnum(Enum.Font.Code),
+        Font = Font.fromEnum(Enum.Font.RobotoMono),
 
         RedColor = Color3.fromRGB(255, 50, 50),
         DestructiveColor = Color3.fromRGB(220, 38, 38),
@@ -345,9 +345,11 @@ end
 if RunService:IsStudio() then
     if UserInputService.TouchEnabled and not UserInputService.MouseEnabled then
         Library.IsMobile = true
+        Library.DPIScale = 0.75
         Library.OriginalMinSize = Vector2.new(480, 240)
     else
         Library.IsMobile = false
+        Library.DPIScale = 1
         Library.OriginalMinSize = Vector2.new(480, 360)
     end
 else
@@ -356,6 +358,7 @@ else
     end)
 
     Library.IsMobile = (Library.DevicePlatform == Enum.Platform.Android or Library.DevicePlatform == Enum.Platform.IOS)
+    Library.DPIScale = Library.IsMobile and 0.75 or 1
     Library.OriginalMinSize = Library.IsMobile and Vector2.new(480, 240) or Vector2.new(480, 360)
 end
 
@@ -434,7 +437,7 @@ local Templates = {
         NotifySide = "Right",
         ShowCustomCursor = true,
 
-        Font = Enum.Font.Code,
+        Font = Enum.Font.RobotoMono,
         ToggleKeybind = Enum.KeyCode.RightControl,
 
         ShowMobileButtons = true,
@@ -458,6 +461,7 @@ local Templates = {
 
         --// Background \\--
         BackgroundImage = "",
+        Transparency = 0.4,
 
         --// Animations \\--
         Animations = {
@@ -7777,7 +7781,7 @@ do
 
         local Holder = New("Frame", {
             BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 0, Info.Compact and 15 or 33),
+            Size = UDim2.new(1, 0, 0, Info.Compact and 20 or 38),
             Visible = Slider.Visible,
             Parent = Container,
         })
@@ -7799,7 +7803,7 @@ do
             AnchorPoint = Vector2.new(0, 1),
             BackgroundColor3 = "MainColor",
             Position = UDim2.fromScale(0, 1),
-            Size = UDim2.new(1, 0, 0, 15),
+            Size = UDim2.new(1, 0, 0, 20),
             Text = "",
             Parent = Holder,
         })
@@ -8211,7 +8215,7 @@ do
 
         local Holder = New("Frame", {
             BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 0, Info.Compact and 15 or 33),
+            Size = UDim2.new(1, 0, 0, Info.Compact and 20 or 38),
             Visible = Slider.Visible,
             Parent = Container,
         })
@@ -8236,7 +8240,7 @@ do
             AnchorPoint = Vector2.new(0, 1),
             BackgroundColor3 = "MainColor",
             Position = UDim2.fromScale(0, 1),
-            Size = UDim2.new(1, -(InputWidth + Gap), 0, 15),
+            Size = UDim2.new(1, -(InputWidth + Gap), 0, 20),
             Text = "",
             Parent = Holder,
         })
@@ -8283,7 +8287,7 @@ do
             BackgroundColor3 = "MainColor",
             ClearTextOnFocus = false,
             Position = UDim2.fromScale(1, 1),
-            Size = UDim2.new(0, InputWidth, 0, 15),
+            Size = UDim2.new(0, InputWidth, 0, 20),
             Text = tostring(Slider.Value),
             TextColor3 = "FontColor",
             TextEditable = not Slider.Disabled,
@@ -11304,7 +11308,7 @@ function Library:CreateWindow(WindowInfo)
     local ParticleColorOverride = WindowInfo.ParticleColor
     local ParticlePool = {}
     local PopulateParticles
-    local CurrentTransparency = math.clamp(WindowInfo.Transparency or 0, 0, 0.85)
+    local CurrentTransparency = math.clamp(WindowInfo.Transparency or 0.4, 0, 0.85)
     Library.Transparency = CurrentTransparency
     local ApplyTransparency
     local TitleHolder
@@ -12874,16 +12878,31 @@ function Library:CreateWindow(WindowInfo)
                 LastExpandedWidth = Tabs.Size.X.Offset
             end
 
-            Tabs.Visible = false
-            DividerLine.Visible = false
+            local CompactWidth = WindowInfo.SidebarCompactWidth or 48
+            Tabs.Visible = true
+            DividerLine.Visible = true
 
-            Tabs.Size = UDim2.new(0, 0, 1, -70)
-            Container.Size = UDim2.new(1, 0, 1, -70)
+            DividerLine.Position = UDim2.fromOffset(CompactWidth, 0)
+            TitleHolder.Size = UDim2.new(0, math.max(0, CompactWidth - 38), 1, 0)
+            Tabs.Size = UDim2.new(0, CompactWidth, 1, -70)
+            Container.Size = UDim2.new(1, -CompactWidth - 1, 1, -70)
+            RightWrapper.Size = UDim2.new(1, -CompactWidth - (WindowInfo.Minimizable ~= false and 134 or 104) - 1, 1, -16)
 
-            TitleHolder.Visible = true
-            WindowTitle.Visible = true
+            IsCompact = true
+            WindowTitle.Visible = false
             if WindowIcon then
                 WindowIcon.Visible = true
+            end
+
+            for _, Button in Library.TabButtons do
+                if Button.Icon then
+                    Button.Label.Visible = false
+                    Button.Padding.PaddingBottom = UDim.new(0, 6)
+                    Button.Padding.PaddingLeft = UDim.new(0, 6)
+                    Button.Padding.PaddingRight = UDim.new(0, 6)
+                    Button.Padding.PaddingTop = UDim.new(0, 6)
+                    Button.Icon.SizeConstraint = Enum.SizeConstraint.RelativeXY
+                end
             end
 
             if ToggleSidebarIconImage then
@@ -12893,7 +12912,7 @@ function Library:CreateWindow(WindowInfo)
                 end
             end
             if ToggleSidebarTooltip then
-                ToggleSidebarTooltip:SetText("Show Tab Menu")
+                ToggleSidebarTooltip:SetText("Show Tab Names")
             end
         else
             local TargetWidth = math.max(InitialLeftWidth, LastExpandedWidth)
@@ -12907,6 +12926,20 @@ function Library:CreateWindow(WindowInfo)
             Container.Size = UDim2.new(1, -TargetWidth - 1, 1, -70)
             RightWrapper.Size = UDim2.new(1, -TargetWidth - (WindowInfo.Minimizable ~= false and 134 or 104) - 1, 1, -16)
 
+            IsCompact = false
+            WindowTitle.Visible = true
+
+            for _, Button in Library.TabButtons do
+                if Button.Icon then
+                    Button.Label.Visible = true
+                    Button.Padding.PaddingBottom = UDim.new(0, 11)
+                    Button.Padding.PaddingLeft = UDim.new(0, 12)
+                    Button.Padding.PaddingRight = UDim.new(0, 12)
+                    Button.Padding.PaddingTop = UDim.new(0, 11)
+                    Button.Icon.SizeConstraint = Enum.SizeConstraint.RelativeYY
+                end
+            end
+
             if WindowInfo.EnableCompacting then
                 ApplyCompact()
             end
@@ -12918,7 +12951,7 @@ function Library:CreateWindow(WindowInfo)
                 end
             end
             if ToggleSidebarTooltip then
-                ToggleSidebarTooltip:SetText("Hide Tab Menu")
+                ToggleSidebarTooltip:SetText("Hide Tab Names")
             end
         end
 

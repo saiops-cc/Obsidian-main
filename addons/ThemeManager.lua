@@ -475,7 +475,7 @@ function ThemeManager:SetDefaultTheme(Theme: any)
         FinalTheme.FontFace = FontFace
     
     else
-        LibraryScheme.Font = Font.fromEnum(Enum.Font.Code)
+        LibraryScheme.Font = Font.fromEnum(Enum.Font.RobotoMono)
         FinalTheme.FontFace = "RobotoMono"
     end
 
@@ -830,7 +830,7 @@ function ThemeManager:CreateThemeManager(Themesbox: any)
 
     Themesbox:AddDropdown("FontFace", {
         Text = "Font Face",
-        Default = "Code",
+        Default = "RobotoMono",
         
         Values = { "BuilderSans", "Code", "Fantasy", "Gotham", "Jura", "Roboto", "RobotoMono", "SourceSans" },
         AllowNull = false,
@@ -848,7 +848,7 @@ function ThemeManager:CreateThemeManager(Themesbox: any)
 
     Themesbox:AddSliderInput("ThemeManager_Transparency", {
         Text = "Window Transparency",
-        Default = (ThemeManager.Library and ThemeManager.Library.Transparency) or 0,
+        Default = (ThemeManager.Library and ThemeManager.Library.Transparency) or 0.4,
         Min = 0,
         Max = 0.85,
         Rounding = 2,

@@ -830,7 +830,7 @@ MenuGroup:AddDropdown("NotificationSide", {
 })
 MenuGroup:AddDropdown("DPIDropdown", {
 	Values = { "50%", "75%", "100%", "125%", "150%", "175%", "200%" },
-	Default = "100%",
+	Default = Library.IsMobile and "75%" or "100%",
 
 	Text = "DPI Scale",
 
@@ -855,7 +855,7 @@ MenuGroup:AddSlider("UICornerSlider", {
 
 MenuGroup:AddSliderInput("WindowTransparency", {
 	Text = "Window Transparency",
-	Default = 0,
+	Default = Library.Transparency or 0.4,
 	Min = 0,
 	Max = 0.85,
 	Rounding = 2,
